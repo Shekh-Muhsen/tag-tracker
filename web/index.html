@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tag Tracker</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="/static/style.css">
+<link rel="manifest" href="/static/manifest.webmanifest">
+<meta name="theme-color" content="#2563eb">
+</head>
+<body>
+<div id="map"></div>
+
+<aside id="panel">
+  <div class="panel-head">
+    <div class="brand"><span class="dot"></span> Tag Tracker</div>
+    <button id="toggle" class="icon" title="Hide panel">▾</button>
+  </div>
+
+  <div class="panel-body">
+    <label class="field">Tag
+      <select id="device"></select>
+    </label>
+    <div id="latest" class="latest"></div>
+
+    <div class="field">History
+      <div class="chips" id="ranges">
+        <button data-h="today">Today</button>
+        <button data-h="24">24 h</button>
+        <button data-h="48">2 days</button>
+        <button data-h="168" class="on">7 days</button>
+        <button data-h="720">30 days</button>
+        <button data-h="2160">90 days</button>
+        <button data-h="8760">1 year</button>
+        <button data-h="custom">Custom</button>
+      </div>
+    </div>
+    <div id="custom" class="custom" hidden>
+      <label>From<input type="datetime-local" id="from"></label>
+      <label>To<input type="datetime-local" id="to"></label>
+      <button id="applyCustom">Show</button>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="field">Playback
+      <div class="playback">
+        <button id="play" class="icon" title="Play">▶</button>
+        <input type="range" id="scrub" min="0" max="0" value="0">
+      </div>
+      <div class="muted small" id="scrubLabel">&nbsp;</div>
+    </div>
+
+    <label class="check"><input type="checkbox" id="showPoints" checked> Show individual points</label>
+    <label class="check"><input type="checkbox" id="autoRefresh" checked> Auto-refresh every minute</label>
+
+    <div class="row">
+      <button id="pollNow">Check now</button>
+      <button id="csv">CSV</button>
+      <button id="gpx">GPX</button>
+    </div>
+    <div class="muted small" id="pollStatus"></div>
+    <div class="row foot">
+      <button id="rename" class="link">Rename tag</button>
+      <button id="server" class="link" hidden>Change server</button>
+      <button id="logout" class="link">Sign out</button>
+    </div>
+  </div>
+</aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tag Tracker – Sign in</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="manifest" href="/static/manifest.webmanifest">
+<meta name="theme-color" content="#2563eb">
+</head>
+<body class="login-body">
+<form class="login-card" id="f">
+  <div class="brand"><span class="dot"></span> Tag Tracker</div>
+  <p class="muted">Sign in to see your tag's travel history.</p>
+  <label>Username<input name="username" autocomplete="username" required autofocus></label>
+  <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+  <button type="submit" class="primary">Sign in</button>
+  <p class="error" id="err"></p>
+  <button type="button" class="link" id="server" hidden onclick="TagTrackerApp.changeServer()">Change server</button>
+</form>
+<script>
+if (window.TagTrackerApp) document.getElementById('server').hidden = false;
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target), err = document.getElementById('err');
+  err.textContent = '';
+  const r = await fetch('/api/login', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username: fd.get('username'), password: fd.get('password')})
+  });
+  if (r.ok) location.href = '/';
+  else err.textContent = (await r.json().catch(() => ({}))).detail || 'Sign in failed';
+});
+</script>
+</body>
+</html>

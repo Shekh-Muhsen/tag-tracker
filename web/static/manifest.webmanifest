@@ -1,0 +1,9 @@
+{
+  "name": "Tag Tracker",
+  "short_name": "Tag Tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0f17",
+  "theme_color": "#2563eb",
+  "icons": [{ "src": "/static/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

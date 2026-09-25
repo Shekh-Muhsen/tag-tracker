@@ -1,0 +1,12 @@
+services:
+  tracker:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    environment:
+      TT_POLL_MINUTES: "10"
+      # Set to "1" once you serve the site over HTTPS
+      TT_COOKIE_SECURE: "0"

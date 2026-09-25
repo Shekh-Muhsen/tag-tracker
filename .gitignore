@@ -1,0 +1,14 @@
+# Private data: location history, Google tokens, session secret
+data/
+vendor/
+.venv/
+__pycache__/
+*.pyc
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.jks
+*.keystore
