@@ -1,127 +1,134 @@
 package com.tagtracker.app;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.DownloadManager;
-import android.content.SharedPreferences;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
-import android.text.InputType;
-import android.webkit.CookieManager;
 import android.webkit.JavascriptInterface;
-import android.webkit.URLUtil;
-import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
-import android.webkit.WebSettings;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.webkit.WebViewAssetLoader;
+
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.FileOutputStream;
+
 /**
- * Thin wrapper around the Tag Tracker web app. The server address is asked on first
- * launch and can be changed from the "Change server" link inside the app.
+ * Standalone map screen. Everything runs on the phone: the bundled web UI (web/) is served
+ * from the APK assets and talks to the Python core through the "Native" JS bridge instead of
+ * an HTTP server. No login, no remote server.
  */
 public class MainActivity extends Activity {
-    private static final String PREFS = "tagtracker";
-    private static final String KEY_URL = "server_url";
-
     private WebView web;
-    private SharedPreferences prefs;
+    private WebViewAssetLoader loader;
 
+    @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+
+        // First launch (or signed out) goes to setup.
+        boolean connected = false;
+        try {
+            connected = new JSONObject(TagApp.py(this).callAttr("account_json").toString())
+                    .optBoolean("connected");
+        } catch (Exception ignored) {
+        }
+        if (!connected && savedInstanceState == null) {
+            startActivity(new Intent(this, SettingsActivity.class));
+        }
+
+        loader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .build();
 
         web = new WebView(this);
         setContentView(web);
-
-        WebSettings s = web.getSettings();
-        s.setJavaScriptEnabled(true);
-        s.setDomStorageEnabled(true);
-        CookieManager.getInstance().setAcceptCookie(true);
-        CookieManager.getInstance().setAcceptThirdPartyCookies(web, false);
-
-        web.addJavascriptInterface(new Bridge(), "TagTrackerApp");
+        web.getSettings().setJavaScriptEnabled(true);
+        web.getSettings().setDomStorageEnabled(true);
+        web.addJavascriptInterface(new Native(), "Native");
         web.setWebViewClient(new WebViewClient() {
             @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
-                Uri u = req.getUrl();
-                Uri base = Uri.parse(serverUrl());
-                if (u.getHost() != null && u.getHost().equals(base.getHost())) return false;
-                // External links (e.g. "Open in Google Maps") go to the proper app.
-                startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, u));
-                return true;
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return loader.shouldInterceptRequest(request.getUrl());
             }
 
             @Override
-            public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
-                if (req.isForMainFrame()) showConnectionError(String.valueOf(err.getDescription()));
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri u = request.getUrl();
+                if ("appassets.androidplatform.net".equals(u.getHost())) return false;
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, u));
+                } catch (Exception ignored) {
+                }
+                return true;
             }
         });
-        web.setDownloadListener((url, userAgent, contentDisposition, mimeType, length) -> {
-            DownloadManager.Request r = new DownloadManager.Request(Uri.parse(url));
-            r.addRequestHeader("Cookie", CookieManager.getInstance().getCookie(url));
-            r.addRequestHeader("User-Agent", userAgent);
-            String name = URLUtil.guessFileName(url, contentDisposition, mimeType);
-            r.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, name);
-            r.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            ((DownloadManager) getSystemService(DOWNLOAD_SERVICE)).enqueue(r);
-            Toast.makeText(this, "Downloading " + name, Toast.LENGTH_SHORT).show();
-        });
 
-        if (savedInstanceState != null) {
-            web.restoreState(savedInstanceState);
-        } else if (serverUrl().isEmpty()) {
-            askServerUrl();
-        } else {
-            web.loadUrl(serverUrl());
-        }
+        PollWorker.schedule(this);
+        if (savedInstanceState != null) web.restoreState(savedInstanceState);
+        else web.loadUrl("https://appassets.androidplatform.net/assets/web/index.html");
     }
 
-    private String serverUrl() {
-        return prefs.getString(KEY_URL, "");
-    }
-
-    private void askServerUrl() {
-        EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_TEXT_VARIATION_URI);
-        input.setHint("https://tracker.example.com");
-        input.setText(serverUrl());
-        int pad = (int) (20 * getResources().getDisplayMetrics().density);
-        input.setPadding(pad, pad, pad, pad);
-
-        new AlertDialog.Builder(this)
-                .setTitle("Tag Tracker server")
-                .setMessage("Enter the address of your Tag Tracker server.")
-                .setView(input)
-                .setCancelable(!serverUrl().isEmpty())
-                .setPositiveButton("Connect", (d, w) -> {
-                    String url = input.getText().toString().trim();
-                    if (!url.startsWith("http://") && !url.startsWith("https://")) url = "https://" + url;
-                    while (url.endsWith("/")) url = url.substring(0, url.length() - 1);
-                    prefs.edit().putString(KEY_URL, url).apply();
-                    web.clearHistory();
-                    web.loadUrl(url);
-                })
-                .show();
-    }
-
-    private void showConnectionError(String detail) {
-        new AlertDialog.Builder(this)
-                .setTitle("Can't reach server")
-                .setMessage(serverUrl() + "\n\n" + detail)
-                .setPositiveButton("Retry", (d, w) -> web.loadUrl(serverUrl()))
-                .setNegativeButton("Change server", (d, w) -> askServerUrl())
-                .show();
-    }
-
-    class Bridge {
+    /** JS -> Python bridge. Method names match the fetch() paths the web UI would call on the server. */
+    class Native {
         @JavascriptInterface
-        public void changeServer() {
-            runOnUiThread(MainActivity.this::askServerUrl);
+        public String devices() {
+            return TagApp.py(MainActivity.this).callAttr(
+                    "devices_json", TagApp.intervalMinutes(MainActivity.this),
+                    DriveBackup.enabled(MainActivity.this)).toString();
+        }
+
+        @JavascriptInterface
+        public String history(String deviceId, long start, long end) {
+            return TagApp.py(MainActivity.this).callAttr("history_json", deviceId, start, end).toString();
+        }
+
+        @JavascriptInterface
+        public void pollNow() {
+            PollWorker.runNow(MainActivity.this);
+        }
+
+        @JavascriptInterface
+        public void rename(String deviceId, String name) {
+            TagApp.py(MainActivity.this).callAttr("rename", deviceId, name);
+        }
+
+        @JavascriptInterface
+        public void openSettings() {
+            startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+        }
+
+        /** Writes an export to the cache and hands it to a share/save chooser. */
+        @JavascriptInterface
+        public void export(String deviceId, long start, long end, String format) {
+            new Thread(() -> {
+                try {
+                    String name = "track-" + start + "-" + end + "." + format;
+                    File out = new File(getCacheDir(), name);
+                    if (format.equals("gpx")) {
+                        TagApp.py(MainActivity.this).callAttr("export_gpx", out.getAbsolutePath(), deviceId, start, end);
+                    } else {
+                        TagApp.py(MainActivity.this).callAttr("export_csv", out.getAbsolutePath(), deviceId, start, end);
+                    }
+                    Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                            MainActivity.this, getPackageName() + ".files", out);
+                    Intent share = new Intent(Intent.ACTION_SEND);
+                    share.setType(format.equals("gpx") ? "application/gpx+xml" : "text/csv");
+                    share.putExtra(Intent.EXTRA_STREAM, uri);
+                    share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    runOnUiThread(() -> startActivity(Intent.createChooser(share, "Save or share " + name)));
+                } catch (Exception e) {
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this,
+                            "Export failed: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                }
+            }).start();
         }
     }
 
@@ -133,7 +140,7 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (web.canGoBack()) web.goBack();
+        if (web != null && web.canGoBack()) web.goBack();
         else super.onBackPressed();
     }
 }

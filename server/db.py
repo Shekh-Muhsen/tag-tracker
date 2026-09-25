@@ -1,3 +1,4 @@
+import csv
 import hashlib
 import hmac
 import os
@@ -34,10 +35,12 @@ CREATE TABLE IF NOT EXISTS locations (
     accuracy REAL,
     is_own_report INTEGER,
     semantic_name TEXT,           -- e.g. "Home" for semantic reports without coordinates
-    received_at INTEGER NOT NULL, -- when our server fetched it
-    UNIQUE(device_id, ts, lat, lon)
+    received_at INTEGER NOT NULL  -- when our server fetched it
 );
 CREATE INDEX IF NOT EXISTS idx_locations_device_ts ON locations(device_id, ts);
+-- COALESCE so semantic reports (no lat/lon) are de-duplicated too; NULLs never collide in UNIQUE.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_locations ON locations(
+    device_id, ts, COALESCE(lat, 999), COALESCE(lon, 999), COALESCE(semantic_name, ''));
 """
 
 
@@ -165,6 +168,53 @@ def get_devices():
 def rename_device(device_id: str, name: str, color: str | None):
     with connect() as c:
         c.execute("UPDATE devices SET name=?, color=COALESCE(?, color) WHERE id=?", (name, color, device_id))
+
+
+CSV_HEADER = ["tag_id", "tag", "time_local", "unix", "lat", "lon", "altitude", "accuracy_m", "own_report", "place"]
+
+
+def export_csv(path, device_id=None, start=0, end=2**40) -> int:
+    """Writes locations to a CSV file (opens in Google Sheets / Excel). Returns row count."""
+    with connect() as c:
+        names = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM devices")}
+        q = ("SELECT device_id, ts, lat, lon, altitude, accuracy, is_own_report, semantic_name "
+             "FROM locations WHERE ts BETWEEN ? AND ?")
+        args = [start, end]
+        if device_id:
+            q += " AND device_id=?"
+            args.append(device_id)
+        rows = c.execute(q + " ORDER BY device_id, ts", args).fetchall()
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(CSV_HEADER)
+        for r in rows:
+            w.writerow([r["device_id"], names.get(r["device_id"], ""),
+                        time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(r["ts"])), r["ts"],
+                        r["lat"], r["lon"], r["altitude"], r["accuracy"], r["is_own_report"],
+                        r["semantic_name"] or ""])
+    return len(rows)
+
+
+def import_csv(path) -> int:
+    """Loads a CSV written by export_csv (e.g. the Google Drive copy). Duplicates are skipped."""
+    num = lambda v: float(v) if v not in ("", None) else None
+    by_device: dict[str, list] = {}
+    names = {}
+    with open(path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            dev = row.get("tag_id") or row.get("tag") or "imported"
+            names[dev] = row.get("tag") or dev
+            by_device.setdefault(dev, []).append({
+                "ts": int(float(row["unix"])), "lat": num(row.get("lat")), "lon": num(row.get("lon")),
+                "altitude": num(row.get("altitude")), "accuracy": num(row.get("accuracy_m")),
+                "is_own_report": row.get("own_report") in ("1", "True", "true"),
+                "semantic_name": row.get("place") or None,
+            })
+    added = 0
+    for dev, locs in by_device.items():
+        upsert_device(dev, names[dev])
+        added += insert_locations(dev, locs)
+    return added
 
 
 def get_history(device_id: str, start: int, end: int):

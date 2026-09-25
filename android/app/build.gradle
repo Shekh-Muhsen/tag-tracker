@@ -1,8 +1,13 @@
 plugins {
     id "com.android.application"
+    id "com.chaquo.python"
 }
 
 def ks = System.getenv("ANDROID_KEYSTORE_PATH")
+def repoRoot = file("../..")
+def gfmtDir = new File(repoRoot, "vendor/GoogleFindMyTools")
+def genPy = layout.buildDirectory.dir("generated/serverpy").get().asFile
+def genWeb = layout.buildDirectory.dir("generated/webassets").get().asFile
 
 android {
     namespace "com.tagtracker.app"
@@ -13,7 +18,8 @@ android {
         minSdk 24
         targetSdk 35
         versionCode Integer.parseInt(System.getenv("VERSION_CODE") ?: "1")
-        versionName System.getenv("VERSION_NAME") ?: "1.0"
+        versionName System.getenv("VERSION_NAME") ?: "2.0"
+        ndk { abiFilters "arm64-v8a", "x86_64" }
     }
 
     signingConfigs {
@@ -35,8 +41,46 @@ android {
         }
     }
 
+    sourceSets {
+        main { assets.srcDirs += genWeb }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+chaquopy {
+    defaultConfig {
+        version = "3.13"
+        pip { install "-r", "requirements-android.txt" }
+        extractPackages "certifi"
+    }
+    sourceSets {
+        main {
+            srcDir "src/main/python"
+            srcDir genPy
+            srcDir gfmtDir
+        }
+    }
+}
+
+// Share the server's Python code and the web UI with the app instead of duplicating them.
+tasks.register("copySharedCode", Copy) {
+    from(new File(repoRoot, "server")) { include "*.py"; into "serverpy/server" }
+    from(new File(repoRoot, "web")) { into "webassets/web" }
+    into layout.buildDirectory.dir("generated")
+    doFirst {
+        if (!new File(gfmtDir, "NovaApi").exists()) {
+            throw new GradleException("Missing ${gfmtDir}. Run setup.ps1 / setup.sh (or clone GoogleFindMyTools there) first.")
+        }
+    }
+}
+preBuild.dependsOn "copySharedCode"
+
+dependencies {
+    implementation "androidx.core:core:1.13.1"
+    implementation "androidx.work:work-runtime:2.9.1"
+    implementation "androidx.webkit:webkit:1.12.1"
 }

@@ -1,0 +1,24 @@
+# Python packages bundled into the APK (GoogleFindMyTools needs, minus Chrome/Selenium).
+# Native packages are pinned to versions Chaquopy provides Android builds for (Python 3.13).
+cryptography==42.0.8
+cffi==1.17.1
+pycryptodomex==3.21.0
+aiohttp==3.10.10
+multidict==6.1.0
+yarl==1.16.0
+frozenlist==1.4.1
+aiosignal
+aiohappyeyeballs
+attrs
+propcache
+protobuf
+requests
+certifi
+gpsoauth
+beautifulsoup4
+pyscrypt
+ecdsa
+pytz
+httpx
+h2
+http_ece

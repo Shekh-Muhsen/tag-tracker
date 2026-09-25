@@ -8,6 +8,7 @@
   python -m server.manage demo                   add a fake tag with 1 year of sample history
   python -m server.manage backup                 upload a backup to Google Drive now
   python -m server.manage restore                replace local data with the Google Drive backup
+  python -m server.manage import-csv <file>      merge a CSV (e.g. TagTracker-history.csv from the phone app)
 """
 import getpass
 import math
@@ -110,6 +111,8 @@ def main(argv):
         print("Backup uploaded.")
     elif cmd == "restore":
         restore()
+    elif cmd == "import-csv" and len(args) == 1:
+        print(f"Imported {db.import_csv(args[0])} new locations.")
     else:
         sys.exit(__doc__)
 

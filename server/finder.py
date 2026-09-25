@@ -6,8 +6,11 @@ location reports. This module wraps it so the rest of the app just gets plain
 dicts with lat/lon/timestamp.
 """
 import hashlib
+import importlib.util
+import json
 import sys
 import threading
+import types
 
 from .config import GFMT_DIR, GOOGLE_SECRETS_PATH
 
@@ -17,19 +20,82 @@ _pending: dict[str, dict] = {}  # request uuid -> {"event": Event, "result": hex
 _listener_registered = False
 
 
+def _stub_browser_modules():
+    """On Android there is no Chrome/Selenium; the sign-in steps are done in a WebView instead.
+    The library still imports these at module level, so give it harmless placeholders."""
+    names = ["selenium", "selenium.webdriver", "selenium.webdriver.support",
+             "selenium.webdriver.support.ui", "selenium.webdriver.support.expected_conditions",
+             "undetected_chromedriver"]
+    for n in names:
+        sys.modules.setdefault(n, types.ModuleType(n))
+    sys.modules["selenium.webdriver.support.ui"].WebDriverWait = None
+
+
 def _ensure_imported():
     global _imported
     if _imported:
         return
-    if not (GFMT_DIR / "NovaApi").exists():
-        raise RuntimeError(
-            f"GoogleFindMyTools not found at {GFMT_DIR}. Run the setup script first (see README)."
-        )
-    sys.path.insert(0, str(GFMT_DIR))
+    if importlib.util.find_spec("NovaApi") is None:  # bundled on Android, vendored elsewhere
+        if not (GFMT_DIR / "NovaApi").exists():
+            raise RuntimeError(
+                f"GoogleFindMyTools not found at {GFMT_DIR}. Run the setup script first (see README)."
+            )
+        sys.path.insert(0, str(GFMT_DIR))
+    if importlib.util.find_spec("selenium") is None:
+        _stub_browser_modules()
     # Keep Google tokens in our data dir instead of inside the vendored library.
     import Auth.token_cache as token_cache
     token_cache._get_secrets_file = lambda: str(GOOGLE_SECRETS_PATH)
     _imported = True
+
+
+# ---------- sign-in without Chrome (used by the Android app's WebView) ----------
+
+def is_connected() -> bool:
+    _ensure_imported()
+    from Auth.token_cache import get_cached_value
+    return bool(get_cached_value("aas_token") and get_cached_value("shared_key"))
+
+
+def account_email() -> str:
+    _ensure_imported()
+    from Auth.token_cache import get_cached_value
+    return get_cached_value("username") or ""
+
+
+def sign_in_with_oauth_token(oauth_token: str) -> str:
+    """Exchanges the 'oauth_token' cookie from accounts.google.com/EmbeddedSetup for a
+    long-lived token, exactly like GoogleFindMyTools' Chrome flow does."""
+    _ensure_imported()
+    import gpsoauth
+    from Auth.fcm_receiver import FcmReceiver
+    from Auth.token_cache import set_cached_value
+
+    android_id = FcmReceiver().get_android_id()
+    resp = gpsoauth.exchange_token("", oauth_token, android_id)
+    if "Token" not in resp:
+        raise RuntimeError(f"Google sign-in failed: {resp.get('Error', resp)}")
+    set_cached_value("aas_token", resp["Token"])
+    if "Email" in resp:
+        set_cached_value("username", resp["Email"])
+    return resp.get("Email", "")
+
+
+def shared_key_url() -> str:
+    _ensure_imported()
+    from KeyBackup.shared_key_request import get_security_domain_request_url
+    return get_security_domain_request_url()
+
+
+def save_vault_keys(vault_keys) -> None:
+    """Called with the vaultKeys the Google 'unlock' page hands to window.mm.setVaultSharedKeys."""
+    _ensure_imported()
+    from Auth.token_cache import set_cached_value
+    from KeyBackup.response_parser import get_fmdn_shared_key
+
+    if not isinstance(vault_keys, str):
+        vault_keys = json.dumps(vault_keys)
+    set_cached_value("shared_key", get_fmdn_shared_key(vault_keys).hex())
 
 
 def list_trackers() -> list[tuple[str, str]]:

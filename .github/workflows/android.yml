@@ -19,10 +19,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch GoogleFindMyTools (bundled into the APK)
+        run: |
+          git clone https://github.com/leonboe1/GoogleFindMyTools vendor/GoogleFindMyTools
+          git -C vendor/GoogleFindMyTools checkout d46e9528578015b51d3b84dd91bf8f16e9ab850f
+        working-directory: ${{ github.workspace }}
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
 
       - uses: gradle/actions/setup-gradle@v4
         with:

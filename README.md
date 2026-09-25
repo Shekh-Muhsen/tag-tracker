@@ -128,14 +128,33 @@ Pick one:
 
 Don't open port 8000 on your router without HTTPS.
 
-## 3. Android app
+## Android app (works on its own — no server needed)
 
-Every push to `main` that changes `android/` builds an APK. In GitHub, open **Actions → Android APK → latest run**,
-download the **TagTracker-apk** artifact, unzip it and install it (allow "install unknown apps").
-To create a proper release, push a tag such as `git tag v1.0 && git push --tags`. The APK is then attached to the GitHub Release.
+The Android app is **standalone**: it signs in to Google, checks Find Hub **in the background**, stores the
+history on the phone, and backs it up to **Google Drive**. You do not need to run the Python server for the app.
+(The server above is an optional alternative for people who want an always-on machine and a web login.)
 
-On first launch the app asks for your server address, for example `https://tracker.example.com`. You can change it later
-with **Change server** at the bottom of the panel.
+**Install:** open **Actions → Android APK → latest run** in GitHub and download the **TagTracker-apk** artifact
+(or grab the APK from the latest [Release](../../releases)). Unzip if needed, copy to your phone, and install it
+(allow "install unknown apps"). To cut a release with the APK attached: `git tag v2.0 && git push --tags`.
+
+**First run** opens a setup screen:
+1. **Sign in to Google** — a Google page opens; sign in with the account you use in Find Hub.
+2. **Unlock encryption keys** — a Google page asks for your phone's screen lock (PIN/pattern). This releases the
+   keys that decrypt the tag's location. Your password and PIN are typed into Google's own pages; the app never sees them.
+3. **Background checking** — pick how often to check (15 min minimum, an Android limit) and tap **Allow background
+   running** so Android doesn't suspend it.
+4. **Back up to Google Drive** — tap **Choose Google Drive file** and create a file such as `TagTracker-history.csv`
+   inside your Drive. The app overwrites it with your full history every hour. You can open it in Google Sheets.
+
+Then tap **Open map** for the same map, history ranges and trip replay as the web app.
+
+*How it runs offline:* the app bundles the Python location code (via [Chaquopy](https://chaquo.com/chaquopy/)) and
+runs it with Android WorkManager, so checks continue when the app is closed and after a reboot. Because of Android
+battery limits, exact timing varies and the phone must have a network connection when a check runs.
+
+*Note on Drive:* the app writes to **one Drive file you pick**, using the normal file picker, so there is no Google
+Cloud project or API key to set up. It does not need the full server's rclone setup.
 
 *Optional: stable signing.* By default each build is signed with a temporary debug key, so moving to a newer
 build may mean uninstalling the old one first. To avoid that, create a keystore and add these repository secrets:

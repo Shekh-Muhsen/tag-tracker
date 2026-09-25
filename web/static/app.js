@@ -15,12 +15,25 @@
   let devices = [], deviceId = store.get('device'), range = { h: store.get('range') || '168' };
   let points = [], fitted = false, playTimer = null;
 
+  // Runs against either the web server (fetch) or, inside the Android app, the Native bridge.
+  const NATIVE = window.Native;
+
   async function api(path, opts = {}) {
     const r = await fetch(path, { credentials: 'same-origin', ...opts });
     if (r.status === 401) { location.href = '/login'; throw new Error('logged out'); }
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.statusText);
     return r.json();
   }
+
+  const data = {
+    devices: () => NATIVE ? JSON.parse(NATIVE.devices()) : api('/api/devices'),
+    history: (id, s, e) => NATIVE ? JSON.parse(NATIVE.history(id, s, e))
+      : api(`/api/history/${encodeURIComponent(id)}?start=${s}&end=${e}`),
+    pollNow: () => NATIVE ? NATIVE.pollNow() : api('/api/poll-now', { method: 'POST' }),
+    rename: (id, name) => NATIVE ? NATIVE.rename(id, name)
+      : api(`/api/devices/${encodeURIComponent(id)}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }),
+  };
 
   const fmt = (ts) => new Date(ts * 1000).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
   function ago(ts) {
@@ -47,20 +60,20 @@
 
   // ---------- devices ----------
   async function loadDevices() {
-    const data = await api('/api/devices');
-    devices = data.devices;
+    const res = await data.devices();
+    devices = res.devices;
     const sel = $('device');
     sel.innerHTML = devices.length ? devices.map((d) => `<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('')
       : '<option value="">No tags yet – waiting for first check</option>';
     if (!devices.find((d) => d.id === deviceId)) deviceId = devices[0]?.id || null;
     if (deviceId) sel.value = deviceId;
     renderLatest();
-    const p = data.poller;
+    const p = res.poller;
     $('pollStatus').textContent = !p.enabled ? 'Automatic checking is off on this server.'
       : p.running ? 'Checking Google for new locations…'
       : p.last_error ? `Last check failed: ${p.last_error}`
       : p.last_run ? `Last checked ${ago(p.last_run)} · every ${p.interval_minutes} min` : 'Starting…';
-    const b = data.backup;
+    const b = res.backup;
     if (b?.enabled) $('pollStatus').textContent += b.last_error ? ` · Drive backup failed: ${b.last_error}`
       : b.last_run ? ` · Backed up to Drive ${ago(b.last_run)}` : ' · Drive backup starting…';
   }
@@ -92,8 +105,8 @@
     layers.track.clearLayers(); layers.points.clearLayers(); layers.play.clearLayers();
     if (!deviceId) { points = []; renderStats(); return; }
     const [start, end] = currentRange();
-    const data = await api(`/api/history/${encodeURIComponent(deviceId)}?start=${start}&end=${end}`);
-    points = data.points.filter((p) => p.lat != null);
+    const res = await data.history(deviceId, start, end);
+    points = res.points.filter((p) => p.lat != null);
     const color = devices.find((d) => d.id === deviceId)?.color || '#2563eb';
     const lls = points.map((p) => [p.lat, p.lon]);
     if (lls.length > 1) L.polyline(lls, { color, weight: 3, opacity: 0.75 }).addTo(layers.track);
@@ -186,27 +199,34 @@
   $('showPoints').addEventListener('change', () => loadHistory().catch(alert));
   $('toggle').addEventListener('click', () => $('panel').classList.toggle('collapsed'));
   $('pollNow').addEventListener('click', async () => {
-    try { await api('/api/poll-now', { method: 'POST' }); $('pollStatus').textContent = 'Checking Google for new locations…'; setTimeout(refresh, 15000); }
+    try { await data.pollNow(); $('pollStatus').textContent = 'Checking Google for new locations…'; setTimeout(refresh, 15000); }
     catch (e) { alert(e.message); }
   });
   const download = (f) => {
     if (!deviceId) return;
     const [start, end] = currentRange();
-    location.href = `/api/history/${encodeURIComponent(deviceId)}?start=${start}&end=${end}&format=${f}`;
+    if (NATIVE) NATIVE.export(deviceId, start, end, f);
+    else location.href = `/api/history/${encodeURIComponent(deviceId)}?start=${start}&end=${end}&format=${f}`;
   };
   $('csv').addEventListener('click', () => download('csv'));
   $('gpx').addEventListener('click', () => download('gpx'));
   $('rename').addEventListener('click', async () => {
     const d = devices.find((x) => x.id === deviceId); if (!d) return;
     const name = prompt('New name for this tag', d.name); if (!name) return;
-    await api(`/api/devices/${encodeURIComponent(d.id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+    await data.rename(d.id, name);
     refresh();
   });
   if (window.TagTrackerApp) {
     $('server').hidden = false;
     $('server').addEventListener('click', () => window.TagTrackerApp.changeServer());
   }
-  $('logout').addEventListener('click', async () => { await api('/api/logout', { method: 'POST' }); location.href = '/login'; });
+  if (NATIVE) {
+    // In the standalone app there is no login; "Sign out" becomes "Settings".
+    $('logout').textContent = 'Settings';
+    $('logout').addEventListener('click', () => NATIVE.openSettings());
+  } else {
+    $('logout').addEventListener('click', async () => { await api('/api/logout', { method: 'POST' }); location.href = '/login'; });
+  }
 
   async function refresh() {
     try { await loadDevices(); if (!playTimer) await loadHistory(); } catch (e) { console.error(e); }
