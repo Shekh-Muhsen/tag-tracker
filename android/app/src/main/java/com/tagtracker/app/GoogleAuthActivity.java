@@ -49,8 +49,11 @@ public class GoogleAuthActivity extends Activity {
                     checkCookie();
                 }
             });
-            web.loadUrl("https://accounts.google.com/EmbeddedSetup");
-            handler.postDelayed(this::pollCookie, 1000);
+            // Start clean so a leftover/premature oauth_token from a previous try isn't exchanged.
+            CookieManager.getInstance().removeAllCookies(v -> {
+                web.loadUrl("https://accounts.google.com/EmbeddedSetup");
+                handler.postDelayed(this::pollCookie, 1500);
+            });
         } else {
             setTitle("Unlock Find Hub encryption");
             // Google's page calls window.mm.setVaultSharedKeys(str, vaultKeysJson) like it does
@@ -82,30 +85,56 @@ public class GoogleAuthActivity extends Activity {
         handler.postDelayed(this::pollCookie, 1000);
     }
 
+    private String lastTried = "";
+    private long lastTryMs = 0;
+    private volatile boolean inFlight = false;
+
     private void checkCookie() {
-        if (done) return;
+        if (done || inFlight) return;
         String cookies = CookieManager.getInstance().getCookie("https://accounts.google.com");
         if (cookies == null) return;
+        String token = null;
         for (String c : cookies.split(";")) {
             String[] kv = c.trim().split("=", 2);
             if (kv.length == 2 && kv[0].equals("oauth_token")) {
-                done = true;
-                String token = kv[1];
-                Toast.makeText(this, "Signed in, connecting…", Toast.LENGTH_SHORT).show();
-                new Thread(() -> {
-                    try {
-                        String email = TagApp.py(this).callAttr("sign_in", token).toString();
-                        runOnUiThread(() -> {
-                            Toast.makeText(this, "Connected " + email, Toast.LENGTH_LONG).show();
-                            setResult(RESULT_OK);
-                            finish();
-                        });
-                    } catch (Exception e) {
-                        runOnUiThread(() -> fail(e));
-                    }
-                }).start();
-                return;
+                token = kv[1];
+                break;
             }
+        }
+        if (token == null || token.isEmpty()) return;
+        // The EmbeddedSetup page sets oauth_token early, before sign-in is finished; that token
+        // fails with BadAuthentication. Retry the same value periodically (it becomes valid once
+        // sign-in completes) and try any new value immediately.
+        long now = System.currentTimeMillis();
+        if (token.equals(lastTried) && now - lastTryMs < 6000) return;
+        lastTried = token;
+        lastTryMs = now;
+        inFlight = true;
+        final String t = token;
+        new Thread(() -> {
+            try {
+                tryExchange(t);
+            } finally {
+                inFlight = false;
+            }
+        }).start();
+    }
+
+    private void tryExchange(String token) {
+        try {
+            String email = TagApp.py(this).callAttr("sign_in", token).toString();
+            done = true;
+            runOnUiThread(() -> {
+                Toast.makeText(this, "Connected " + email, Toast.LENGTH_LONG).show();
+                setResult(RESULT_OK);
+                finish();
+            });
+        } catch (Exception e) {
+            String msg = String.valueOf(e.getMessage());
+            // Not-yet-signed-in: keep waiting for the final token instead of failing.
+            if (msg.contains("BadAuthentication") || msg.contains("try again")) return;
+            done = true;
+            runOnUiThread(() -> fail(e));
         }
     }
 

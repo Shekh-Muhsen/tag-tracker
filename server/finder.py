@@ -72,8 +72,12 @@ def sign_in_with_oauth_token(oauth_token: str) -> str:
     from Auth.token_cache import set_cached_value
 
     android_id = FcmReceiver().get_android_id()
+    if not android_id:
+        raise RuntimeError("Could not register with Google (no network?). Please try again.")
     resp = gpsoauth.exchange_token("", oauth_token, android_id)
     if "Token" not in resp:
+        # 'BadAuthentication' here usually means the oauth_token was read before sign-in
+        # finished; the caller ignores it and retries with the final token.
         raise RuntimeError(f"Google sign-in failed: {resp.get('Error', resp)}")
     set_cached_value("aas_token", resp["Token"])
     if "Email" in resp:
