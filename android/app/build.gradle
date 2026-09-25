@@ -6,8 +6,8 @@ plugins {
 def ks = System.getenv("ANDROID_KEYSTORE_PATH")
 def repoRoot = file("../..")
 def gfmtDir = new File(repoRoot, "vendor/GoogleFindMyTools")
-def genPy = layout.buildDirectory.dir("generated/serverpy").get().asFile
-def genWeb = layout.buildDirectory.dir("generated/webassets").get().asFile
+def genPy = layout.buildDirectory.dir("sharedCode/serverpy").get().asFile
+def genWeb = layout.buildDirectory.dir("sharedCode/webassets").get().asFile
 
 android {
     namespace "com.tagtracker.app"
@@ -70,7 +70,7 @@ chaquopy {
 tasks.register("copySharedCode", Copy) {
     from(new File(repoRoot, "server")) { include "*.py"; into "serverpy/server" }
     from(new File(repoRoot, "web")) { into "webassets/web" }
-    into layout.buildDirectory.dir("generated")
+    into layout.buildDirectory.dir("sharedCode")
     doFirst {
         if (!new File(gfmtDir, "NovaApi").exists()) {
             throw new GradleException("Missing ${gfmtDir}. Run setup.ps1 / setup.sh (or clone GoogleFindMyTools there) first.")
