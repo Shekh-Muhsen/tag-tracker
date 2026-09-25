@@ -13,7 +13,11 @@ GOOGLE_SECRETS_PATH = DATA_DIR / "google_secrets.json"
 POLL_MINUTES = max(1.0, float(os.environ.get("TT_POLL_MINUTES", "10")))
 POLLING_ENABLED = os.environ.get("TT_POLLING", "1") != "0"
 
-HOST = os.environ.get("TT_HOST", "0.0.0.0")
+# Online backup via rclone, e.g. "gdrive:TagTracker" (empty = off).
+RCLONE_REMOTE = os.environ.get("TT_RCLONE_REMOTE", "").strip()
+BACKUP_MINUTES = max(5.0, float(os.environ.get("TT_BACKUP_MINUTES", "60")))
+
+HOST =os.environ.get("TT_HOST", "0.0.0.0")
 PORT = int(os.environ.get("TT_PORT", "8000"))
 
 # Set to 1 when served over HTTPS so the session cookie is only sent securely.

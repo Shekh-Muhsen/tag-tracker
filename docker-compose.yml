@@ -10,3 +10,5 @@ services:
       TT_POLL_MINUTES: "10"
       # Set to "1" once you serve the site over HTTPS
       TT_COOKIE_SECURE: "0"
+      # Google Drive backup (see README). Leave empty to disable.
+      TT_RCLONE_REMOTE: ""

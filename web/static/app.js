@@ -60,6 +60,9 @@
       : p.running ? 'Checking Google for new locations…'
       : p.last_error ? `Last check failed: ${p.last_error}`
       : p.last_run ? `Last checked ${ago(p.last_run)} · every ${p.interval_minutes} min` : 'Starting…';
+    const b = data.backup;
+    if (b?.enabled) $('pollStatus').textContent += b.last_error ? ` · Drive backup failed: ${b.last_error}`
+      : b.last_run ? ` · Backed up to Drive ${ago(b.last_run)}` : ' · Drive backup starting…';
   }
 
   function renderLatest() {

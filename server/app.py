@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import db, poller
+from . import backup, db, poller
 from .config import COOKIE_SECURE, POLL_MINUTES, POLLING_ENABLED, ROOT, SECRET_KEY, SESSION_DAYS
 
 WEB_DIR = ROOT / "web"
@@ -24,6 +24,7 @@ async def lifespan(_app):
         print("\n  No users yet. Create one with:  python -m server.manage adduser <name>\n")
     if POLLING_ENABLED:
         poller.start()
+    backup.start()
     yield
 
 
@@ -87,6 +88,7 @@ def devices(user: str = Depends(require_user)):
     return {
         "devices": db.get_devices(),
         "poller": {**poller.status, "enabled": POLLING_ENABLED, "interval_minutes": POLL_MINUTES},
+        "backup": backup.status,
     }
 
 

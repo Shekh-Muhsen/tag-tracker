@@ -91,6 +91,32 @@ Or use Docker: `docker compose up -d`, then run `docker compose exec tracker pyt
 | `TT_DATA_DIR` | `./data` | Folder for the database and secrets |
 | `TT_COOKIE_SECURE` | `0` | Set to `1` when you serve the site over HTTPS |
 | `TT_SESSION_DAYS` | `30` | How long a login lasts |
+| `TT_RCLONE_REMOTE` | *(off)* | Google Drive backup target, e.g. `gdrive:TagTracker` |
+| `TT_BACKUP_MINUTES` | `60` | How often to back up |
+
+## Google Drive backup (keep your history safe online)
+
+The server can copy your data to Google Drive every hour. It uploads:
+- `tracker.db`: the full database, which you can restore on any machine
+- `csv/locations-YYYY-MM.csv`: one file per month that you can open in Google Sheets
+
+Google sign-in tokens are **never** uploaded.
+
+1. Install [rclone](https://rclone.org/downloads/). On Windows, run `winget install Rclone.Rclone`.
+2. Connect it to your Drive: run `rclone config` and choose **n** (new remote). Name it `gdrive`, pick storage **drive**, and leave
+   client id and secret blank. Choose scope **1** (full access) or **3** (`drive.file`, which only sees files rclone creates). Accept the rest,
+   then sign in to Google in the browser that opens.
+3. Turn on the backup before you start the server:
+   ```powershell
+   $env:TT_RCLONE_REMOTE = "gdrive:TagTracker"
+   .\start.ps1
+   ```
+   A `TagTracker` folder appears in your Drive. The status line in the web app shows when the last backup ran.
+
+Other commands: `python -m server.manage backup` uploads a backup now. `python -m server.manage restore` downloads the
+Drive backup onto a new machine. Stop the server before you restore.
+
+With Docker, copy your `rclone.conf` (run `rclone config file` to find it) into `data/`, then set `TT_RCLONE_REMOTE` in `docker-compose.yml`.
 
 ## 2. Reach it from your phone and from anywhere
 

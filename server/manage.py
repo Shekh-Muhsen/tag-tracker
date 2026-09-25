@@ -6,6 +6,8 @@
   python -m server.manage google-login           one-time Google sign-in (needs Chrome)
   python -m server.manage poll                   fetch tag locations once and exit
   python -m server.manage demo                   add a fake tag with 1 year of sample history
+  python -m server.manage backup                 upload a backup to Google Drive now
+  python -m server.manage restore                replace local data with the Google Drive backup
 """
 import getpass
 import math
@@ -66,6 +68,24 @@ def demo():
     print(f"Inserted {added} demo points.")
 
 
+def restore():
+    from . import backup
+    from .config import DB_PATH
+
+    print("Stop the server before restoring. Downloading backup...")
+    tmp = backup.restore()
+    if DB_PATH.exists():
+        old = DB_PATH.with_suffix(f".before-restore-{int(time.time())}.db")
+        DB_PATH.rename(old)
+        print(f"Current database kept as {old.name}")
+    for ext in ("-wal", "-shm"):
+        p = DB_PATH.with_name(DB_PATH.name + ext)
+        if p.exists():
+            p.unlink()
+    tmp.rename(DB_PATH)
+    print("Restored. Start the server again.")
+
+
 def main(argv):
     db.init()
     if len(argv) < 1:
@@ -84,6 +104,12 @@ def main(argv):
         poller.poll_once()
     elif cmd == "demo":
         demo()
+    elif cmd == "backup":
+        from . import backup
+        backup.run_once(full_csv=True)
+        print("Backup uploaded.")
+    elif cmd == "restore":
+        restore()
     else:
         sys.exit(__doc__)
 
