@@ -16,9 +16,9 @@ requests
 certifi
 gpsoauth
 beautifulsoup4
-pyscrypt
+wheels/pyscrypt-1.6.2-py3-none-any.whl
 ecdsa
 pytz
 httpx
 h2
-http_ece
+wheels/http_ece-1.2.1-py2.py3-none-any.whl
