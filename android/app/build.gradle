@@ -8,6 +8,9 @@ def repoRoot = file("../..")
 def gfmtDir = new File(repoRoot, "vendor/GoogleFindMyTools")
 def genPy = layout.buildDirectory.dir("sharedCode/serverpy").get().asFile
 def genWeb = layout.buildDirectory.dir("sharedCode/webassets").get().asFile
+// Must exist at configuration time because Chaquopy / assets register them as source dirs.
+genPy.mkdirs()
+genWeb.mkdirs()
 
 android {
     namespace "com.tagtracker.app"
@@ -78,6 +81,11 @@ tasks.register("copySharedCode", Copy) {
     }
 }
 preBuild.dependsOn "copySharedCode"
+// The Python source-merge / proxy tasks and asset merge read the generated dirs, so make
+// them wait for the copy (avoids Gradle's implicit-dependency error).
+tasks.matching {
+    it.name ==~ /(?i)(merge|generate).*Python.*|merge.*Assets/
+}.configureEach { dependsOn "copySharedCode" }
 
 dependencies {
     implementation "androidx.core:core:1.13.1"
