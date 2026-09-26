@@ -197,9 +197,12 @@ public class SettingsActivity extends Activity {
             });
         }
 
-        heading("3. Sync to Google Drive");
-        note("The app keeps a copy on the phone (so the map loads instantly) AND uploads your full history to "
-                + "Google Drive – the cloud copy, safe even if you lose the phone.");
+        heading("3. Storage & sync");
+        note("Your locations are ALWAYS saved on the phone first – they can never be lost, even with no "
+                + "internet or if Drive is busy. Google Drive is an extra cloud copy on top. Choose:\n"
+                + "• CONTINUOUS SYNC (recommended): phone + Google Drive, syncs after each check. If offline or "
+                + "rate-limited, it just retries later – nothing is lost.\n"
+                + "• LOCAL ONLY: keep everything on the phone, no cloud (turn both options below off).");
 
         // Default (automatic) mode: one fixed folder in the SAME Google account, no file picking.
         // Signing into the app on another phone with the same account pulls the history back.

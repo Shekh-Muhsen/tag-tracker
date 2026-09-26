@@ -113,8 +113,8 @@
       el.classList.add('off'); el.textContent = 'Drive off';
       el.title = 'Google Drive sync is off. Turn it on in setup.';
     } else if (b.last_error) {
-      el.classList.add('err'); el.textContent = 'Sync error';
-      el.title = 'Drive sync error: ' + b.last_error;
+      el.classList.add('busy'); el.textContent = 'Saved · sync pending';
+      el.title = 'Your locations ARE saved on the phone. Drive sync will retry automatically. (' + b.last_error + ')';
     } else if (b.last_run) {
       el.classList.add('ok'); el.textContent = 'Synced';
       el.title = `Backed up to Google Drive ${ago(b.last_run)}` + (b.mode ? ` (${b.mode})` : '');
