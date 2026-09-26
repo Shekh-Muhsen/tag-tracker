@@ -7,15 +7,24 @@
 
   const map = L.map('map', { preferCanvas: true, zoomControl: false }).setView([20, 0], 2);
   L.control.zoom({ position: 'topright' }).addTo(map);
-  const streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, attribution: '&copy; OpenStreetMap contributors',
-  }).addTo(map);
-  const satellite = L.tileLayer(
-    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 19, attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics',
-    });
-  // Map / Satellite toggle, like the official Find Hub page.
-  L.control.layers({ Map: streets, Satellite: satellite }, null, { position: 'topright' }).addTo(map);
+
+  const gsub = { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], maxZoom: 21, attribution: '&copy; Google' };
+  const bases = {
+    'OpenStreetMap': { layer: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }), imagery: false },
+    'Google Streets': { layer: L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', gsub), imagery: false },
+    'Google Satellite': { layer: L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', gsub), imagery: true },
+    'Google Hybrid': { layer: L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', gsub), imagery: true },
+    'Satellite (Esri)': { layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Imagery &copy; Esri, Maxar' }), imagery: true },
+  };
+  const applyImagery = (name) => document.body.classList.toggle('imagery', !!bases[name]?.imagery);
+  const saved = store.get('layer');
+  const startName = bases[saved] ? saved : 'OpenStreetMap';
+  bases[startName].layer.addTo(map);
+  applyImagery(startName);
+  const control = {};
+  Object.entries(bases).forEach(([name, b]) => { control[name] = b.layer; });
+  L.control.layers(control, null, { position: 'topright' }).addTo(map);
+  map.on('baselayerchange', (e) => { applyImagery(e.name); store.set('layer', e.name); });
 
   const layers = { track: L.layerGroup().addTo(map), points: L.layerGroup().addTo(map), live: L.layerGroup().addTo(map), play: L.layerGroup().addTo(map) };
   let devices = [], deviceId = store.get('device'), range = { h: store.get('range') || '168' };
