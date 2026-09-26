@@ -33,15 +33,16 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // First launch (or signed out) goes to setup.
-        boolean connected = false;
-        try {
-            connected = new JSONObject(TagApp.py(this).callAttr("account_json").toString())
-                    .optBoolean("connected");
-        } catch (Exception ignored) {
-        }
-        if (!connected && savedInstanceState == null) {
-            startActivity(new Intent(this, SettingsActivity.class));
+        // Only send brand-new users (never even signed in) to setup. Being signed in but not yet
+        // "unlocked" must NOT block the map — otherwise Open map just bounces back to Settings.
+        if (savedInstanceState == null) {
+            boolean signedIn = false;
+            try {
+                signedIn = new JSONObject(TagApp.py(this).callAttr("account_json").toString())
+                        .optBoolean("signed_in");
+            } catch (Exception ignored) {
+            }
+            if (!signedIn) startActivity(new Intent(this, SettingsActivity.class));
         }
 
         loader = new WebViewAssetLoader.Builder()
@@ -52,6 +53,7 @@ public class MainActivity extends Activity {
         setContentView(web);
         web.getSettings().setJavaScriptEnabled(true);
         web.getSettings().setDomStorageEnabled(true);
+        web.setWebChromeClient(new android.webkit.WebChromeClient());
         web.addJavascriptInterface(new Native(), "Native");
         web.setWebViewClient(new WebViewClient() {
             @Override
@@ -130,6 +132,35 @@ public class MainActivity extends Activity {
                 }
             }).start();
         }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(android.view.Menu menu) {
+        menu.add(0, 1, 0, "Check for locations now");
+        menu.add(0, 2, 0, "Refresh");
+        menu.add(0, 3, 0, "Setup & settings");
+        menu.add(0, 4, 0, "Help");
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(android.view.MenuItem item) {
+        switch (item.getItemId()) {
+            case 1:
+                PollWorker.runNow(this);
+                Toast.makeText(this, "Checking Find Hub…", Toast.LENGTH_SHORT).show();
+                return true;
+            case 2:
+                web.reload();
+                return true;
+            case 3:
+                startActivity(new Intent(this, SettingsActivity.class));
+                return true;
+            case 4:
+                startActivity(new Intent(this, HelpActivity.class));
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override

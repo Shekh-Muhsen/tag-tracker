@@ -56,6 +56,7 @@ public class GoogleAuthActivity extends Activity {
             });
         } else {
             setTitle("Unlock Find Hub encryption");
+            Toast.makeText(this, "Sign in again to unlock encryption", Toast.LENGTH_LONG).show();
             // Google's page calls window.mm.setVaultSharedKeys(str, vaultKeysJson) like it does
             // inside the Find Hub app. A Java interface named "mm" exists before any page script runs.
             web.addJavascriptInterface(new AuthBridge(), "mm");
@@ -66,18 +67,29 @@ public class GoogleAuthActivity extends Activity {
                     view.evaluateJavascript("(function(){var j=window.mm;if(!j||j.__w)return;" +
                             "window.mm={__w:1,setVaultSharedKeys:function(s,k){j.setVaultSharedKeys(String(s)," +
                             "typeof k==='string'?k:JSON.stringify(k));},closeView:function(){j.closeView();}};})()", null);
+                    // The unlock page needs a normal accounts.google.com web session (the step-1
+                    // device login doesn't create one). So sign in on accounts.google.com first,
+                    // and only load the unlock page once signed in (redirected to myaccount).
+                    if (!unlockLoaded && url != null && url.startsWith("https://myaccount.google.com")) {
+                        unlockLoaded = true;
+                        setTitle("Unlock Find Hub encryption");
+                        new Thread(() -> {
+                            try {
+                                String u = TagApp.py(GoogleAuthActivity.this).callAttr("shared_key_url").toString();
+                                runOnUiThread(() -> web.loadUrl(u));
+                            } catch (Exception e) {
+                                runOnUiThread(() -> fail(e));
+                            }
+                        }).start();
+                    }
                 }
             });
-            new Thread(() -> {
-                try {
-                    String url = TagApp.py(this).callAttr("shared_key_url").toString();
-                    runOnUiThread(() -> web.loadUrl(url));
-                } catch (Exception e) {
-                    runOnUiThread(() -> fail(e));
-                }
-            }).start();
+            // Fresh session so the sign-in actually happens (avoids a stale/partial 401 session).
+            CookieManager.getInstance().removeAllCookies(v -> web.loadUrl("https://accounts.google.com/"));
         }
     }
+
+    private boolean unlockLoaded = false;
 
     private void pollCookie() {
         if (done || isFinishing()) return;

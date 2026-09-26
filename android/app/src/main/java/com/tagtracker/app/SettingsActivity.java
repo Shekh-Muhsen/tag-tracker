@@ -19,9 +19,16 @@ import android.widget.Toast;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.DateFormat;
+import java.util.Date;
+
 /** Setup and settings: Google connection, background checking, Google Drive backup. */
 public class SettingsActivity extends Activity {
-    private static final int REQ_SIGN_IN = 1, REQ_UNLOCK = 2, REQ_DRIVE_FILE = 3;
+    private static final int REQ_SIGN_IN = 1, REQ_UNLOCK = 2, REQ_DRIVE_FILE = 3, REQ_RESTORE = 4;
     private static final int[] INTERVALS = {15, 30, 60, 120};
 
     private LinearLayout root;
@@ -52,12 +59,13 @@ public class SettingsActivity extends Activity {
     private void render() {
         root.removeAllViews();
 
-        boolean connected = false;
+        boolean signedIn = false, unlocked = false;
         String email = "";
         String error = null;
         try {
             JSONObject a = new JSONObject(TagApp.py(this).callAttr("account_json").toString());
-            connected = a.optBoolean("connected");
+            signedIn = a.optBoolean("signed_in");
+            unlocked = a.optBoolean("unlocked");
             email = a.optString("email");
             error = a.has("error") && !a.isNull("error") ? a.optString("error") : null;
         } catch (Exception e) {
@@ -65,16 +73,24 @@ public class SettingsActivity extends Activity {
         }
 
         heading("1. Connect your Google account");
-        note("Sign in with the Google account you use in Find Hub, then unlock the encryption with your "
-                + "phone's screen lock. This is done on Google's own pages – the app never sees your password.");
+        note("Two quick steps on Google's own pages (the app never sees your password or PIN). "
+                + "Do both – locations stay hidden until step 2 is done.");
 
-        if (connected) {
-            info("✓ Connected" + (email.isEmpty() ? "" : " as " + email));
-            button("Re-run encryption unlock", v -> startAuth(GoogleAuthActivity.MODE_UNLOCK, REQ_UNLOCK));
-        } else {
-            button("Sign in to Google", v -> startAuth(GoogleAuthActivity.MODE_SIGN_IN, REQ_SIGN_IN));
-            button("Unlock encryption keys", v -> startAuth(GoogleAuthActivity.MODE_UNLOCK, REQ_UNLOCK));
+        // Step 1
+        info((signedIn ? "✓ " : "① ") + "Step 1: Sign in"
+                + (signedIn && !email.isEmpty() ? " – " + email : ""));
+        button(signedIn ? "Sign in again" : "Sign in to Google",
+                v -> startAuth(GoogleAuthActivity.MODE_SIGN_IN, REQ_SIGN_IN));
+
+        // Step 2
+        info((unlocked ? "✓ " : "② ") + "Step 2: Unlock encryption (needed to see locations)");
+        button(unlocked ? "Unlock again" : "Unlock encryption keys",
+                v -> startAuth(GoogleAuthActivity.MODE_UNLOCK, REQ_UNLOCK));
+        if (signedIn && !unlocked) {
+            note("⚠ You're signed in and your tags are listed, but the map will stay empty until you finish "
+                    + "step 2. Tap “Unlock encryption keys” and enter your phone's screen lock.");
         }
+        if (signedIn && unlocked) info("✓ All set – the app can read and decrypt your tags.");
         if (error != null) info("Note: " + error);
 
         heading("2. Background checking");
@@ -99,22 +115,29 @@ public class SettingsActivity extends Activity {
             info("✓ Battery optimisation is off for this app.");
         }
 
-        heading("3. Back up to Google Drive");
-        note("Choose (or create) a CSV file in your Google Drive. The app overwrites it with your full history "
-                + "every hour. Tip: in the picker, open Drive, pick a folder, and type a name like TagTracker-history.csv.");
+        heading("3. Sync to Google Drive");
+        note("Pick (or create) a CSV file in your Google Drive. After that the app uploads your full history to "
+                + "it automatically whenever new locations arrive – it is not a manual local-only save. "
+                + "In the picker: open Drive, choose a folder, and name it e.g. TagTracker-history.csv.");
         if (DriveBackup.enabled(this)) {
-            info("✓ Backing up to the chosen Drive file.");
-            button("Back up now", v -> new Thread(() -> {
+            long last = TagApp.prefs(this).getLong(TagApp.KEY_LAST_BACKUP, 0);
+            info("✓ Auto-syncing to your Drive file." + (last > 0
+                    ? "  Last sync: " + DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+                        .format(new Date(last)) : "  (no sync yet)"));
+            button("Sync to Drive now", v -> new Thread(() -> {
                 String err = DriveBackup.backupNow(this);
-                toast(err == null ? "Backed up to Drive" : "Backup failed: " + err);
+                toast(err == null ? "Synced to Drive" : "Sync failed: " + err);
+                runOnUiThread(this::render);
             }).start());
+            button("Restore history from a Drive file", v -> pickRestoreFile());
             button("Choose a different file", v -> pickDriveFile());
-            button("Turn off Drive backup", v -> {
+            button("Turn off Drive sync", v -> {
                 TagApp.prefs(this).edit().remove(TagApp.KEY_DRIVE_URI).apply();
                 render();
             });
         } else {
             button("Choose Google Drive file", v -> pickDriveFile());
+            button("Restore history from a Drive file", v -> pickRestoreFile());
         }
 
         heading("4. Your tags");
@@ -135,6 +158,19 @@ public class SettingsActivity extends Activity {
         status.setPadding(0, dp(16), 0, 0);
         root.addView(status);
         button("Open map", v -> { startActivity(new Intent(this, MainActivity.class)); finish(); });
+        button("Help", v -> startActivity(new Intent(this, HelpActivity.class)));
+    }
+
+    private void pickRestoreFile() {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("*/*");
+        i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"text/csv", "text/comma-separated-values", "text/plain"});
+        try {
+            startActivityForResult(i, REQ_RESTORE);
+        } catch (Exception e) {
+            toast("No file picker available");
+        }
     }
 
     private void startAuth(String mode, int req) {
@@ -170,7 +206,27 @@ public class SettingsActivity extends Activity {
                     .putLong(TagApp.KEY_LAST_BACKUP, 0).apply();
             new Thread(() -> {
                 String err = DriveBackup.backupNow(this);
-                toast(err == null ? "Drive backup set up" : "Backup failed: " + err);
+                toast(err == null ? "Drive sync set up" : "Sync failed: " + err);
+                runOnUiThread(this::render);
+            }).start();
+        } else if (requestCode == REQ_RESTORE && data != null && data.getData() != null) {
+            Uri uri = data.getData();
+            new Thread(() -> {
+                try {
+                    File tmp = new File(getCacheDir(), "restore.csv");
+                    try (InputStream in = getContentResolver().openInputStream(uri);
+                         OutputStream out = new FileOutputStream(tmp)) {
+                        byte[] buf = new byte[64 * 1024];
+                        int n;
+                        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                    }
+                    int added = TagApp.py(this).callAttr("import_csv", tmp.getAbsolutePath()).toInt();
+                    //noinspection ResultOfMethodCallIgnored
+                    tmp.delete();
+                    toast("Restored " + added + " location(s) from the file");
+                } catch (Exception e) {
+                    toast("Restore failed: " + e.getMessage());
+                }
             }).start();
         }
         render();

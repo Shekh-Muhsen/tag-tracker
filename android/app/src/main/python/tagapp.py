@@ -47,11 +47,12 @@ def _save_status(**kw):
 def account_json() -> str:
     from server import finder
     try:
-        connected = finder.is_connected()
-        email = finder.account_email()
+        st = finder.auth_state()
     except Exception as e:
-        return json.dumps({"connected": False, "email": "", "error": str(e)})
-    return json.dumps({"connected": connected, "email": email})
+        return json.dumps({"connected": False, "signed_in": False, "unlocked": False,
+                           "email": "", "error": str(e)})
+    st["connected"] = st["signed_in"] and st["unlocked"]
+    return json.dumps(st)
 
 
 def sign_in(oauth_token: str) -> str:

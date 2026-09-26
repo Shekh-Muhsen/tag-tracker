@@ -21,14 +21,10 @@ final class DriveBackup {
     }
 
     static void backupIfDue(Context ctx, boolean hasNewData) {
-        SharedPreferences p = TagApp.prefs(ctx);
-        long last = p.getLong(TagApp.KEY_LAST_BACKUP, 0);
-        long dueMs = TagApp.backupMinutes(ctx) * 60_000L;
-        if (enabled(ctx) && hasNewData && System.currentTimeMillis() - last >= dueMs) {
-            backupNow(ctx);
-        } else if (enabled(ctx) && last == 0) {
-            backupNow(ctx);
-        }
+        if (!enabled(ctx)) return;
+        // Upload whenever a poll brought new locations, or if we've never synced yet.
+        long last = TagApp.prefs(ctx).getLong(TagApp.KEY_LAST_BACKUP, 0);
+        if (hasNewData || last == 0) backupNow(ctx);
     }
 
     /** Returns null on success, or an error message. */

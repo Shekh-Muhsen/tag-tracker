@@ -57,6 +57,19 @@ def is_connected() -> bool:
     return bool(get_cached_value("aas_token") and get_cached_value("shared_key"))
 
 
+def auth_state() -> dict:
+    """The two sign-in steps, tracked separately so the UI can show progress.
+    signed_in = step 1 (account token, enough to list tags);
+    unlocked  = step 2 (shared key, needed to decrypt locations)."""
+    _ensure_imported()
+    from Auth.token_cache import get_cached_value
+    return {
+        "signed_in": bool(get_cached_value("aas_token")),
+        "unlocked": bool(get_cached_value("shared_key")),
+        "email": get_cached_value("username") or "",
+    }
+
+
 def account_email() -> str:
     _ensure_imported()
     from Auth.token_cache import get_cached_value
