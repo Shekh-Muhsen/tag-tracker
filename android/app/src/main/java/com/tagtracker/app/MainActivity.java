@@ -33,16 +33,18 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Only send brand-new users (never even signed in) to setup. Being signed in but not yet
-        // "unlocked" must NOT block the map — otherwise Open map just bounces back to Settings.
-        if (savedInstanceState == null) {
-            boolean signedIn = false;
-            try {
-                signedIn = new JSONObject(TagApp.py(this).callAttr("account_json").toString())
-                        .optBoolean("signed_in");
-            } catch (Exception ignored) {
-            }
-            if (!signedIn) startActivity(new Intent(this, SettingsActivity.class));
+        final boolean fresh = savedInstanceState == null;
+        // Decide first-launch routing OFF the main thread (Python start can take seconds -> ANR).
+        if (fresh) {
+            new Thread(() -> {
+                boolean signedIn = false;
+                try {
+                    signedIn = new JSONObject(TagApp.py(this).callAttr("account_json").toString())
+                            .optBoolean("signed_in");
+                } catch (Exception ignored) {
+                }
+                if (!signedIn) runOnUiThread(() -> startActivity(new Intent(this, SettingsActivity.class)));
+            }).start();
         }
 
         loader = new WebViewAssetLoader.Builder()
@@ -135,7 +137,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void openSettings() {
-            startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+            runOnUiThread(() -> startActivity(new Intent(MainActivity.this, SettingsActivity.class)));
         }
 
         /** Writes an export to the cache and hands it to a share/save chooser. */
@@ -216,6 +218,15 @@ public class MainActivity extends Activity {
                 return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // App lock gate: require the app password (this phone only) once per launch.
+        if (TagApp.hasAppLock(this) && !TagApp.appUnlocked) {
+            startActivity(new Intent(this, LockActivity.class));
+        }
     }
 
     @Override

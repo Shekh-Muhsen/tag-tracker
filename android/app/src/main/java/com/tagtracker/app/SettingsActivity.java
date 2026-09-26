@@ -11,6 +11,7 @@ import android.os.PowerManager;
 import android.provider.Settings;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -58,20 +59,32 @@ public class SettingsActivity extends Activity {
 
     private void render() {
         root.removeAllViews();
+        TextView loading = new TextView(this);
+        loading.setText("Loading…");
+        loading.setPadding(0, dp(20), 0, 0);
+        root.addView(loading);
+        // Read the Google auth state OFF the UI thread — Python start can take seconds (avoids ANR).
+        new Thread(() -> {
+            boolean signedIn = false, unlocked = false;
+            String email = "", error = null;
+            try {
+                JSONObject a = new JSONObject(TagApp.py(this).callAttr("account_json").toString());
+                signedIn = a.optBoolean("signed_in");
+                unlocked = a.optBoolean("unlocked");
+                email = a.optString("email");
+                error = a.has("error") && !a.isNull("error") ? a.optString("error") : null;
+            } catch (Exception e) {
+                error = e.getMessage();
+            }
+            final boolean fSignedIn = signedIn, fUnlocked = unlocked;
+            final String fEmail = email, fError = error;
+            runOnUiThread(() -> buildUi(fSignedIn, fUnlocked, fEmail, fError));
+        }).start();
+    }
 
-        boolean signedIn = false, unlocked = false;
-        String email = "";
-        String error = null;
-        try {
-            JSONObject a = new JSONObject(TagApp.py(this).callAttr("account_json").toString());
-            signedIn = a.optBoolean("signed_in");
-            unlocked = a.optBoolean("unlocked");
-            email = a.optString("email");
-            error = a.has("error") && !a.isNull("error") ? a.optString("error") : null;
-        } catch (Exception e) {
-            error = e.getMessage();
-        }
-
+    private void buildUi(boolean signedIn, boolean unlocked, String email, String error) {
+        if (isFinishing() || isDestroyed()) return;
+        root.removeAllViews();
         heading("1. Connect your Google account");
         note("Two quick steps on Google's own pages (the app never sees your password or PIN). "
                 + "Do both – locations stay hidden until step 2 is done.");
@@ -208,6 +221,18 @@ public class SettingsActivity extends Activity {
             toast("Checking Find Hub…");
         });
 
+        heading("5. App lock (this phone only)");
+        note("Protect the app with a password so no one who picks up your phone can open your tracker. "
+                + "The password and hint are stored ONLY on this phone – never sent to Google or Drive, so they "
+                + "can't be recovered from anywhere else. If you forget it and the hint doesn't help, reinstall the app.");
+        if (TagApp.hasAppLock(this)) {
+            info("✓ App lock is ON.");
+            button("Change app password", v -> showAppLockDialog());
+            button("Turn off app lock", v -> { TagApp.setAppLock(this, null, null); render(); });
+        } else {
+            button("Set an app password", v -> showAppLockDialog());
+        }
+
         status = new TextView(this);
         status.setPadding(0, dp(16), 0, 0);
         root.addView(status);
@@ -225,6 +250,33 @@ public class SettingsActivity extends Activity {
         } catch (Exception e) {
             toast("No file picker available");
         }
+    }
+
+    private void showAppLockDialog() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(20);
+        box.setPadding(pad, pad, pad, 0);
+        EditText pw = new EditText(this);
+        pw.setHint("New app password (min 4)");
+        pw.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        EditText hint = new EditText(this);
+        hint.setHint("Recovery hint (e.g. ‘usual PIN’)");
+        box.addView(pw);
+        box.addView(hint);
+        new AlertDialog.Builder(this)
+                .setTitle("Set app password")
+                .setView(box)
+                .setPositiveButton("Save", (d, w) -> {
+                    String p = pw.getText().toString();
+                    if (p.length() < 4) { toast("Password too short"); return; }
+                    TagApp.setAppLock(this, p, hint.getText().toString());
+                    TagApp.appUnlocked = true;
+                    toast("App lock set");
+                    render();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void startAuth(String mode, int req) {
