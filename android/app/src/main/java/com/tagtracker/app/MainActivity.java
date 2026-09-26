@@ -92,7 +92,22 @@ public class MainActivity extends Activity {
         public String devices() {
             return TagApp.py(MainActivity.this).callAttr(
                     "devices_json", TagApp.intervalMinutes(MainActivity.this),
-                    DriveBackup.enabled(MainActivity.this)).toString();
+                    DriveBackup.enabled(MainActivity.this),
+                    TagApp.prefs(MainActivity.this).getBoolean(TagApp.KEY_GUARD, false)).toString();
+        }
+
+        @JavascriptInterface
+        public void setParked(boolean parked) {
+            TagApp.prefs(MainActivity.this).edit().putBoolean(TagApp.KEY_GUARD, parked).apply();
+            if (parked) {
+                // Arm from the CURRENT position: don't alert on the move that's already stored.
+                new Thread(() -> {
+                    try {
+                        TagApp.py(MainActivity.this).callAttr("new_movements");
+                    } catch (Exception ignored) {
+                    }
+                }).start();
+            }
         }
 
         @JavascriptInterface

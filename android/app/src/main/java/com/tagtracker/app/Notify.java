@@ -35,15 +35,19 @@ final class Notify {
         return nm;
     }
 
-    /** Loud alert when a guarded tag moves. Tapping opens the map; also offers a Maps link. */
-    static void theftAlert(Context ctx, String name, int movedM, double lat, double lon) {
+    /** Loud alert when a guarded tag moves. Actions: open the map, open Maps, or ring the tag. */
+    static void theftAlert(Context ctx, String deviceId, String name, int movedM, double lat, double lon) {
         NotificationManager nm = mgr(ctx);
         if (nm == null) return;
-        PendingIntent open = PendingIntent.getActivity(ctx, 0, new Intent(ctx, MainActivity.class),
+        int rc = Math.abs(name.hashCode());
+        PendingIntent open = PendingIntent.getActivity(ctx, rc, new Intent(ctx, MainActivity.class),
                 PendingIntent.FLAG_IMMUTABLE);
         Intent maps = new Intent(Intent.ACTION_VIEW,
                 android.net.Uri.parse("https://www.google.com/maps?q=" + lat + "," + lon));
-        PendingIntent mapsPi = PendingIntent.getActivity(ctx, 1, maps, PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent mapsPi = PendingIntent.getActivity(ctx, rc + 1, maps, PendingIntent.FLAG_IMMUTABLE);
+        Intent ring = new Intent(ctx, RingReceiver.class).putExtra(RingReceiver.EXTRA_DEVICE, deviceId);
+        PendingIntent ringPi = PendingIntent.getBroadcast(ctx, rc + 2, ring,
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Notification.Builder b = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 ? new Notification.Builder(ctx, CHANNEL_ALERT)
                 : new Notification.Builder(ctx).setPriority(Notification.PRIORITY_HIGH);
@@ -51,11 +55,12 @@ final class Notify {
                 .setContentText("Moved " + movedM + " m. Tap to see the map.")
                 .setSmallIcon(R.drawable.ic_launcher)
                 .setContentIntent(open)
+                .addAction(new Notification.Action.Builder(R.drawable.ic_launcher, "Ring tag", ringPi).build())
                 .addAction(new Notification.Action.Builder(R.drawable.ic_launcher, "Open in Maps", mapsPi).build())
                 .setAutoCancel(true)
                 .build();
         try {
-            nm.notify(1000 + name.hashCode() % 1000, n);
+            nm.notify(1000 + rc % 1000, n);
         } catch (SecurityException ignored) {
         }
     }

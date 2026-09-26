@@ -217,11 +217,12 @@ def record_backup(error: str | None):
 
 # ---------- data for the map UI (same shapes as the web server's API) ----------
 
-def devices_json(interval_minutes: int, backup_enabled: bool) -> str:
+def devices_json(interval_minutes: int, backup_enabled: bool, parked: bool = False) -> str:
     from server import db
     s = _load_status()
     return json.dumps({
         "devices": db.get_devices(),
+        "guard": bool(parked),
         "poller": {"enabled": True, "running": bool(s.get("running")), "last_run": s.get("last_run"),
                    "last_error": s.get("last_error"), "interval_minutes": interval_minutes},
         "backup": {

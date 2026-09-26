@@ -42,7 +42,7 @@ public class PollWorker extends Worker {
                         TagApp.py(ctx).callAttr("new_movements").toString());
                 for (int i = 0; i < moves.length(); i++) {
                     org.json.JSONObject m = moves.getJSONObject(i);
-                    Notify.theftAlert(ctx, m.getString("name"), m.getInt("moved_m"),
+                    Notify.theftAlert(ctx, m.getString("id"), m.getString("name"), m.getInt("moved_m"),
                             m.getDouble("lat"), m.getDouble("lon"));
                 }
             } catch (Exception ignored) {

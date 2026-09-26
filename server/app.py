@@ -83,13 +83,32 @@ def me(user: str = Depends(require_user)):
 
 # ---------- data ----------
 
+_GUARD_FILE = ROOT / "data" / "guard.flag"
+
+
+def _guard_get() -> bool:
+    return _GUARD_FILE.exists()
+
+
 @app.get("/api/devices")
 def devices(user: str = Depends(require_user)):
     return {
         "devices": db.get_devices(),
+        "guard": _guard_get(),
         "poller": {**poller.status, "enabled": POLLING_ENABLED, "interval_minutes": POLL_MINUTES},
         "backup": backup.status,
     }
+
+
+@app.post("/api/guard")
+def set_guard(body: dict, user: str = Depends(require_user)):
+    on = bool(body.get("parked"))
+    _GUARD_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if on:
+        _GUARD_FILE.write_text("1")
+    elif _GUARD_FILE.exists():
+        _GUARD_FILE.unlink()
+    return {"ok": True, "parked": on}
 
 
 class DeviceEdit(BaseModel):

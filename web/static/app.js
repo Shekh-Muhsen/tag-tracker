@@ -38,6 +38,8 @@
     pollNow: () => NATIVE ? NATIVE.pollNow() : api('/api/poll-now', { method: 'POST' }),
     locate: (id) => NATIVE ? NATIVE.locateNow(id) : api(`/api/locate/${encodeURIComponent(id)}`, { method: 'POST' }),
     sound: (id) => NATIVE ? NATIVE.playSound(id) : api(`/api/sound/${encodeURIComponent(id)}`, { method: 'POST' }),
+    setParked: (on) => NATIVE ? NATIVE.setParked(on)
+      : api('/api/guard', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parked: on }) }),
     rename: (id, name) => NATIVE ? NATIVE.rename(id, name)
       : api(`/api/devices/${encodeURIComponent(id)}`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }),
@@ -82,8 +84,18 @@
       : p.last_error ? `Last check failed: ${p.last_error}`
       : p.last_run ? `Last checked ${ago(p.last_run)} · every ${p.interval_minutes} min` : 'Starting…';
     renderSync(res.backup);
+    renderPark(res.guard);
   }
 
+  let parked = false;
+  function renderPark(on) {
+    parked = !!on;
+    const el = $('park');
+    if (!el) return;
+    el.classList.toggle('armed', parked);
+    el.classList.toggle('riding', !parked);
+    el.textContent = parked ? '🔒 Parked & guarded — tap when you ride' : '🅿️ Park & guard';
+  }
   function renderSync(b) {
     const el = $('sync');
     if (!el) return;
@@ -253,6 +265,15 @@
       await refresh(); done();
     }
   }
+  $('park').addEventListener('click', async () => {
+    const next = !parked;
+    renderPark(next); // optimistic
+    try { await data.setParked(next); } catch (e) { alert(e.message); }
+    $('pollStatus').textContent = next
+      ? 'Guarding: you’ll be alerted if the tag moves.'
+      : 'Riding mode: movement alerts are off.';
+    refresh();
+  });
   $('locate').addEventListener('click', locateNow);
   $('ring').addEventListener('click', async () => {
     if (!deviceId) return;
