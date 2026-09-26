@@ -100,7 +100,7 @@
   let licensed = true;
   function openLicense() {
     if (NATIVE && NATIVE.openLicense) NATIVE.openLicense();
-    else alert('Pro features (multiple tags, full history, export, alerts) unlock with a key in the app.');
+    else alert('Free: 1 tag, last 24h. For 2+ tags and unlimited-day history, contact the developer for a key (meshkat4u@gmail.com).');
   }
   function renderLicense(lic) {
     // Server (no license field) = full features. Only the phone app gates.

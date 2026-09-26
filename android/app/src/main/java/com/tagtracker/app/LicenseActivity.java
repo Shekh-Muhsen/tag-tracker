@@ -57,10 +57,11 @@ public class LicenseActivity extends Activity {
 
         big(pro ? "✅ Pro is active" : "Free version");
         note(pro ? "All features are unlocked on this phone. Thank you!"
-                : "Free: 1 tag and the last 24 hours of history. Unlock Pro for the rest.");
+                : "FREE: 1 tag on 1 device, last 24 hours of history.\n\n"
+                + "For 2+ tags and UNLIMITED-day tracking, contact the developer for a key.");
 
-        head("Pro unlocks");
-        note("• Track multiple tags\n• Full history (day → year) & trip replay\n"
+        head("A key unlocks");
+        note("• Track multiple tags\n• Unlimited history (day → year) & trip replay\n"
                 + "• CSV / GPX export\n• Theft / guard movement alerts\n• Google Drive auto-sync");
 
         head("Your Device ID");
@@ -82,10 +83,10 @@ public class LicenseActivity extends Activity {
         });
 
         if (!pro) {
-            head("Get a Pro key");
-            button("✉ Request key by Email", v -> requestByEmail());
-            button("💬 Request key by SMS / WhatsApp / other", v -> requestByShare());
-            note("You'll receive a key. Paste it below to unlock this phone.");
+            head("Contact developer for a key");
+            button("✉ Contact developer by Email", v -> requestByEmail());
+            button("💬 Contact by SMS / WhatsApp / other", v -> requestByShare());
+            note("Send your Device ID (above). You'll receive a key – paste it below to unlock this phone.");
 
             head("Enter your Pro key");
             final EditText key = new EditText(this);
