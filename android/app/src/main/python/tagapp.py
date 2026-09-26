@@ -189,26 +189,50 @@ def stop_sound(device_id: str):
     finder.play_sound(device_id, False)
 
 
+def _month_bounds(ym: str):
+    import calendar
+    y, m = int(ym[:4]), int(ym[5:7])
+    start = int(time.mktime((y, m, 1, 0, 0, 0, 0, 0, -1)))
+    ny, nm = (y + 1, 1) if m == 12 else (y, m + 1)
+    return start, int(time.mktime((ny, nm, 1, 0, 0, 0, 0, 0, -1))) - 1
+
+
 def drive_default_upload() -> str:
-    """Upload the full history to the DEFAULT Drive folder (same Google account as the tags).
-    This is what makes the data appear automatically on another phone."""
+    """Efficient sync: one CSV per month under TagTracker/history/, re-uploading only the
+    months whose data changed (in practice just the current month). Bounded upload size."""
     from server import db, drive_sync
     from server.config import DATA_DIR
-    tmp = str(DATA_DIR / "history-upload.csv")
-    db.export_csv(tmp)
-    drive_sync.DriveClient(drive_sync.token_from_login()).upload(tmp)
-    _save_status(drive_default_last=int(time.time()), drive_default_error=None)
-    return "ok"
+    client = drive_sync.DriveClient(drive_sync.token_from_login())
+    folder = client.history_folder()
+    manifest = _load_status().get("drive_months", {})
+    tmp = str(DATA_DIR / "month.csv")
+    changed = 0
+    for ym, count in db.months_with_counts():
+        if manifest.get(ym) == count:
+            continue  # unchanged since last upload -> skip (that's the efficiency)
+        start, end = _month_bounds(ym)
+        db.export_csv(tmp, None, start, end)
+        client.upload(tmp, f"locations-{ym}.csv", folder)
+        manifest[ym] = count
+        changed += 1
+    _save_status(drive_months=manifest, drive_default_last=int(time.time()), drive_default_error=None)
+    return f"synced {changed} month file(s)"
 
 
 def drive_default_restore() -> int:
-    """Pull history from the DEFAULT Drive folder onto this device (cross-device retrieve)."""
+    """Pull every monthly file from TagTracker/history/ and merge them (cross-device retrieve)."""
     from server import db, drive_sync
     from server.config import DATA_DIR
-    tmp = str(DATA_DIR / "history-restore.csv")
-    if not drive_sync.DriveClient(drive_sync.token_from_login()).download(tmp):
-        return 0
-    return db.import_csv(tmp)
+    client = drive_sync.DriveClient(drive_sync.token_from_login())
+    folder = client.history_folder()
+    tmp = str(DATA_DIR / "restore-month.csv")
+    added = 0
+    for f in client.list_children(folder):
+        if not f["name"].endswith(".csv"):
+            continue
+        client.download_id(f["id"], tmp)
+        added += db.import_csv(tmp)
+    return added
 
 
 def record_backup(error: str | None):

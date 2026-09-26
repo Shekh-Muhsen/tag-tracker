@@ -84,7 +84,7 @@ public class MainActivity extends Activity {
                     != android.content.pm.PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 9);
         }
-        PollWorker.schedule(this);
+        if (!TagApp.prefs(this).getBoolean(TagApp.KEY_PAUSED, false)) PollWorker.schedule(this);
         maybeRestoreFromDrive();
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
         else web.loadUrl("https://appassets.androidplatform.net/assets/web/index.html");

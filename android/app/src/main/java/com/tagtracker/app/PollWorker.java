@@ -80,4 +80,13 @@ public class PollWorker extends Worker {
                 .build();
         WorkManager.getInstance(ctx).enqueueUniqueWork(ONCE, ExistingWorkPolicy.KEEP, req);
     }
+
+    /** Fully stop background tracking (manual exit). Reopening the app resumes it. */
+    static void stop(Context ctx) {
+        WorkManager.getInstance(ctx).cancelUniqueWork(PERIODIC);
+        WorkManager.getInstance(ctx).cancelUniqueWork(ONCE);
+        android.app.NotificationManager nm =
+                (android.app.NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm != null) nm.cancelAll();
+    }
 }

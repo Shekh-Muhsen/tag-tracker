@@ -217,6 +217,16 @@ def import_csv(path) -> int:
     return added
 
 
+def months_with_counts():
+    """[(YYYY-MM, row_count), ...] over all locations, for incremental monthly Drive sync."""
+    with connect() as c:
+        rows = c.execute(
+            "SELECT strftime('%Y-%m', ts, 'unixepoch', 'localtime') ym, COUNT(*) "
+            "FROM locations GROUP BY ym ORDER BY ym"
+        ).fetchall()
+    return [(r[0], r[1]) for r in rows if r[0]]
+
+
 def get_history(device_id: str, start: int, end: int):
     with connect() as c:
         rows = c.execute(

@@ -22,6 +22,7 @@ public class TagApp extends Application {
     static final String KEY_GUARD = "guard_mode";
     static final String KEY_ONBOARDED = "onboarded";
     static final String KEY_BG_NOTIFY = "bg_notify";  // show a persistent running notification
+    static final String KEY_PAUSED = "paused";        // user manually stopped background tracking
     // App lock (local to THIS phone only — never synced to Drive or Google).
     static final String KEY_APP_PW = "app_pw";        // salt:hash
     static final String KEY_APP_HINT = "app_hint";    // recovery hint text

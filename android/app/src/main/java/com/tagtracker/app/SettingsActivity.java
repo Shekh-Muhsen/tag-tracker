@@ -177,6 +177,26 @@ public class SettingsActivity extends Activity {
             render();
         });
 
+        note("Closing the app (swiping it away) does NOT stop tracking – it keeps checking and saving in "
+                + "the background, which is what you want. Use the button below only when you want to FULLY stop it.");
+        boolean paused = TagApp.prefs(this).getBoolean(TagApp.KEY_PAUSED, false);
+        if (paused) {
+            info("⏸ Background tracking is STOPPED. No locations are being saved.");
+            button("Resume background tracking", v -> {
+                TagApp.prefs(this).edit().putBoolean(TagApp.KEY_PAUSED, false).apply();
+                PollWorker.schedule(this);
+                toast("Tracking resumed");
+                render();
+            });
+        } else {
+            button("⏹ Stop tracking (full exit)", v -> {
+                TagApp.prefs(this).edit().putBoolean(TagApp.KEY_PAUSED, true).apply();
+                PollWorker.stop(this);
+                toast("Background tracking stopped. Tap Resume to start again.");
+                render();
+            });
+        }
+
         heading("3. Sync to Google Drive");
         note("The app keeps a copy on the phone (so the map loads instantly) AND uploads your full history to "
                 + "Google Drive – the cloud copy, safe even if you lose the phone.");
