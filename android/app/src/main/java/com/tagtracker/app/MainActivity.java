@@ -97,7 +97,13 @@ public class MainActivity extends Activity {
             return TagApp.py(MainActivity.this).callAttr(
                     "devices_json", TagApp.intervalMinutes(MainActivity.this),
                     DriveBackup.enabled(MainActivity.this),
-                    TagApp.prefs(MainActivity.this).getBoolean(TagApp.KEY_GUARD, false)).toString();
+                    TagApp.prefs(MainActivity.this).getBoolean(TagApp.KEY_GUARD, false),
+                    TagApp.deviceId(MainActivity.this)).toString();
+        }
+
+        @JavascriptInterface
+        public void openLicense() {
+            runOnUiThread(() -> startActivity(new Intent(MainActivity.this, LicenseActivity.class)));
         }
 
         @JavascriptInterface
@@ -116,7 +122,8 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String history(String deviceId, long start, long end) {
-            return TagApp.py(MainActivity.this).callAttr("history_json", deviceId, start, end).toString();
+            return TagApp.py(MainActivity.this).callAttr("history_json", deviceId, start, end,
+                    TagApp.deviceId(MainActivity.this)).toString();
         }
 
         @JavascriptInterface
@@ -215,6 +222,7 @@ public class MainActivity extends Activity {
         menu.add(0, 1, 0, "Check for locations now");
         menu.add(0, 2, 0, "Refresh");
         menu.add(0, 3, 0, "Setup & settings");
+        menu.add(0, 5, 0, "Tag Tracker Pro");
         menu.add(0, 4, 0, "Help");
         return true;
     }
@@ -234,6 +242,9 @@ public class MainActivity extends Activity {
                 return true;
             case 4:
                 startActivity(new Intent(this, HelpActivity.class));
+                return true;
+            case 5:
+                startActivity(new Intent(this, LicenseActivity.class));
                 return true;
         }
         return super.onOptionsItemSelected(item);

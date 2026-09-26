@@ -64,6 +64,14 @@ public class TagApp extends Application {
         return prefs(ctx).getInt(KEY_BACKUP_MINUTES, 60);
     }
 
+    /** Stable per-device id used to bind a license key to one phone. */
+    @android.annotation.SuppressLint("HardwareIds")
+    static String deviceId(Context ctx) {
+        String id = android.provider.Settings.Secure.getString(
+                ctx.getContentResolver(), android.provider.Settings.Secure.ANDROID_ID);
+        return (id == null || id.isEmpty()) ? "unknown" : id;
+    }
+
     // ---------- app lock ----------
 
     static boolean hasAppLock(Context ctx) {

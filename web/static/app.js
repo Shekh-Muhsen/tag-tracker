@@ -94,6 +94,26 @@
       : p.last_run ? `Last checked ${ago(p.last_run)} · every ${p.interval_minutes} min` : 'Starting…';
     renderSync(res.backup);
     renderPark(res.guard);
+    renderLicense(res.license);
+  }
+
+  let licensed = true;
+  function openLicense() {
+    if (NATIVE && NATIVE.openLicense) NATIVE.openLicense();
+    else alert('Pro features (multiple tags, full history, export, alerts) unlock with a key in the app.');
+  }
+  function renderLicense(lic) {
+    // Server (no license field) = full features. Only the phone app gates.
+    licensed = !lic || lic.licensed !== false;
+    const el = $('pro');
+    if (!el) return;
+    el.hidden = licensed;
+    if (!licensed) { el.textContent = '🔒 Free — Upgrade'; el.onclick = openLicense; }
+    // lock history ranges beyond the free window
+    document.querySelectorAll('#ranges button').forEach((b) => {
+      const free = b.dataset.h === 'today' || b.dataset.h === '24';
+      b.classList.toggle('locked', !licensed && !free);
+    });
   }
 
   let parked = false;
@@ -224,6 +244,7 @@
   }
   $('ranges').addEventListener('click', (e) => {
     const h = e.target.dataset?.h; if (!h) return;
+    if (!licensed && !(h === 'today' || h === '24')) { openLicense(); return; }
     range = { h }; markRange();
     if (h === 'custom') {
       const toLocal = (d) => new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -239,6 +260,8 @@
     fitted = false; loadHistory().catch(alert);
   });
   $('device').addEventListener('change', (e) => {
+    const d = devices.find((x) => x.id === e.target.value);
+    if (d && d.locked) { openLicense(); e.target.value = deviceId; return; }
     deviceId = e.target.value; store.set('device', deviceId); fitted = false;
     renderLatest(); loadHistory().catch(alert);
   });
@@ -250,6 +273,7 @@
   });
   const download = (f) => {
     if (!deviceId) return;
+    if (!licensed) { openLicense(); return; }
     const [start, end] = currentRange();
     if (NATIVE) NATIVE.export(deviceId, start, end, f);
     else location.href = `/api/history/${encodeURIComponent(deviceId)}?start=${start}&end=${end}&format=${f}`;

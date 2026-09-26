@@ -270,11 +270,41 @@ def record_backup(error: str | None):
 
 # ---------- data for the map UI (same shapes as the web server's API) ----------
 
-def devices_json(interval_minutes: int, backup_enabled: bool, parked: bool = False) -> str:
-    from server import db
+def license_state(phone_id: str = "") -> dict:
+    from server import license as lic
+    key = _load_status().get("license_key")
+    if not key:
+        return {"licensed": False, "tags": lic.FREE_TAGS, "free_hours": lic.FREE_HISTORY_HOURS,
+                "reason": "", "expiry": 0}
+    r = lic.verify(key, phone_id)
+    r["free_hours"] = lic.FREE_HISTORY_HOURS
+    return r
+
+
+def set_license(key: str, phone_id: str) -> str:
+    from server import license as lic
+    r = lic.verify((key or "").strip(), phone_id)
+    if r["licensed"]:
+        _save_status(license_key=(key or "").strip())
+    return json.dumps(r)
+
+
+def clear_license():
+    _save_status(license_key=None)
+
+
+def devices_json(interval_minutes: int, backup_enabled: bool, parked: bool = False, phone_id: str = "") -> str:
+    from server import db, license as lic
     s = _load_status()
+    info = license_state(phone_id)
+    devices = db.get_devices()
+    if not info["licensed"]:
+        # Free tier: only the first tag is usable; mark the rest as locked (Pro).
+        for i, d in enumerate(devices):
+            d["locked"] = i >= lic.FREE_TAGS
     return json.dumps({
-        "devices": db.get_devices(),
+        "devices": devices,
+        "license": info,
         "guard": bool(parked),
         "poller": {"enabled": True, "running": bool(s.get("running")), "last_run": s.get("last_run"),
                    "last_error": s.get("last_error"), "interval_minutes": interval_minutes},
@@ -287,9 +317,14 @@ def devices_json(interval_minutes: int, backup_enabled: bool, parked: bool = Fal
     })
 
 
-def history_json(device_id: str, start: int, end: int) -> str:
-    from server import db
-    return json.dumps({"points": db.get_history(device_id, int(start), int(end))})
+def history_json(device_id: str, start: int, end: int, phone_id: str = "") -> str:
+    from server import db, license as lic
+    info = license_state(phone_id)
+    if not info["licensed"]:
+        # Free tier: only the last 24h of history.
+        floor = int(time.time()) - lic.FREE_HISTORY_HOURS * 3600
+        start = max(int(start), floor)
+    return json.dumps({"points": db.get_history(device_id, int(start), int(end)), "licensed": info["licensed"]})
 
 
 def rename(device_id: str, name: str):
