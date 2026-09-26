@@ -85,6 +85,26 @@ public class SettingsActivity extends Activity {
     private void buildUi(boolean signedIn, boolean unlocked, String email, String error) {
         if (isFinishing() || isDestroyed()) return;
         root.removeAllViews();
+
+        // Welcome / onboarding intro
+        TextView welcome = new TextView(this);
+        welcome.setText("Set up Tag Tracker");
+        welcome.setTextSize(22);
+        welcome.setTypeface(welcome.getTypeface(), android.graphics.Typeface.BOLD);
+        welcome.setPadding(0, dp(6), 0, dp(2));
+        root.addView(welcome);
+        note("Find Hub shows only your tag's last spot. This app saves the full history and alerts you if it "
+                + "moves. New here? Read the quick guide first – it explains everything.");
+        Button guide = new Button(this);
+        guide.setText("📖  How it works (guide)");
+        guide.setAllCaps(false);
+        guide.setOnClickListener(v -> startActivity(new Intent(this, HelpActivity.class)));
+        LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        glp.bottomMargin = dp(8);
+        root.addView(guide, glp);
+        progress(signedIn, unlocked);
+
         heading("1. Connect your Google account");
         note("Two quick steps on Google's own pages (the app never sees your password or PIN). "
                 + "Do both – locations stay hidden until step 2 is done.");
@@ -149,6 +169,13 @@ public class SettingsActivity extends Activity {
         } else {
             info("✓ Unrestricted background running is allowed.");
         }
+        boolean bgNotify = TagApp.prefs(this).getBoolean(TagApp.KEY_BG_NOTIFY, true);
+        info(bgNotify ? "✓ A status notification shows while the app runs in the background."
+                : "Background status notification is off.");
+        button(bgNotify ? "Hide background notification" : "Show background notification", v -> {
+            TagApp.prefs(this).edit().putBoolean(TagApp.KEY_BG_NOTIFY, !bgNotify).apply();
+            render();
+        });
 
         heading("3. Sync to Google Drive");
         note("The app keeps a copy on the phone (so the map loads instantly) AND uploads your full history to "
@@ -263,6 +290,31 @@ public class SettingsActivity extends Activity {
         } catch (Exception e) {
             toast("No file picker available");
         }
+    }
+
+    private void progress(boolean signedIn, boolean unlocked) {
+        LinearLayout r = row();
+        r.setPadding(0, dp(2), 0, dp(10));
+        addStep(r, "Sign in", signedIn);
+        addStep(r, "Unlock", unlocked);
+        addStep(r, "Background", true);
+        root.addView(r);
+    }
+
+    private void addStep(LinearLayout r, String label, boolean done) {
+        TextView t = new TextView(this);
+        t.setText((done ? "✓ " : "○ ") + label);
+        t.setTextSize(12);
+        t.setPadding(dp(11), dp(6), dp(11), dp(6));
+        android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+        g.setCornerRadius(dp(999));
+        g.setColor(done ? 0xFF16A34A : 0x1A64748B);
+        t.setBackground(g);
+        t.setTextColor(done ? 0xFFFFFFFF : 0xFF64748B);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.rightMargin = dp(8);
+        r.addView(t, lp);
     }
 
     private void showAppLockDialog() {

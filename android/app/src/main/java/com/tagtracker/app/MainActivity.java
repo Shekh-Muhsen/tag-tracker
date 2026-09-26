@@ -34,8 +34,12 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         final boolean fresh = savedInstanceState == null;
-        // Decide first-launch routing OFF the main thread (Python start can take seconds -> ANR).
-        if (fresh) {
+        if (fresh && !TagApp.prefs(this).getBoolean(TagApp.KEY_ONBOARDED, false)) {
+            // Brand-new user: show the illustrated "how it works" guide, which leads into setup.
+            TagApp.prefs(this).edit().putBoolean(TagApp.KEY_ONBOARDED, true).apply();
+            startActivity(new Intent(this, HelpActivity.class).putExtra(HelpActivity.EXTRA_ONBOARD, true));
+        } else if (fresh) {
+            // Returning user: route to setup if not signed in yet. Off the main thread (avoids ANR).
             new Thread(() -> {
                 boolean signedIn = false;
                 try {

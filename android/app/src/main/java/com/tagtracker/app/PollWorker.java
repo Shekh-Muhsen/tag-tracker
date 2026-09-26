@@ -52,9 +52,12 @@ public class PollWorker extends Worker {
                 || TagApp.prefs(ctx).getBoolean(TagApp.KEY_DRIVE_AUTO, false);
         String when = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
                 .format(new java.util.Date());
+        boolean guarding = TagApp.prefs(ctx).getBoolean(TagApp.KEY_GUARD, false);
+        boolean ongoing = TagApp.prefs(ctx).getBoolean(TagApp.KEY_BG_NOTIFY, true);
+        String prefix = guarding ? "🔒 Guarding" : "Active";
         Notify.syncStatus(ctx, added > 0
-                ? added + " new location(s)" + (drive ? " · synced to Drive" : "") + " · " + when
-                : "Checked" + (drive ? " · Drive up to date" : "") + " · " + when);
+                ? prefix + " · " + added + " new location(s)" + (drive ? " · synced" : "") + " · " + when
+                : prefix + " · last check " + when, ongoing);
         return Result.success();
     }
 

@@ -65,7 +65,7 @@ final class Notify {
         }
     }
 
-    static void syncStatus(Context ctx, String text) {
+    static void syncStatus(Context ctx, String text, boolean ongoing) {
         NotificationManager nm = mgr(ctx);
         if (nm == null) return;
         PendingIntent tap = PendingIntent.getActivity(ctx, 0, new Intent(ctx, MainActivity.class),
@@ -73,12 +73,12 @@ final class Notify {
         Notification.Builder b = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 ? new Notification.Builder(ctx, CHANNEL)
                 : new Notification.Builder(ctx);
-        Notification n = b.setContentTitle("Tag Tracker")
+        Notification n = b.setContentTitle("Tag Tracker is running")
                 .setContentText(text)
                 .setSmallIcon(R.drawable.ic_launcher)
                 .setContentIntent(tap)
                 .setOnlyAlertOnce(true)
-                .setOngoing(false)
+                .setOngoing(ongoing)   // ongoing = a persistent "active in background" indicator
                 .build();
         try {
             nm.notify(ID, n);

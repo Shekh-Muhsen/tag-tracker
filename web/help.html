@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>How Tag Tracker works</title>
+<link rel="stylesheet" href="static/style.css">
+<style>
+  body { background: var(--bg); }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 20px 16px 48px; }
+  .hero { text-align: center; padding: 24px 16px 8px; }
+  .hero .logo { width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, var(--accent), #22d3ee); margin: 0 auto 12px; display: grid; place-items: center; box-shadow: var(--shadow-lg); }
+  .hero .logo svg { width: 30px; height: 30px; }
+  .hero h1 { font-size: 24px; letter-spacing: -.02em; margin: 4px 0; }
+  .hero p { color: var(--muted); margin: 4px 0 0; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-top: 14px; box-shadow: var(--shadow-sm); }
+  .card h2 { font-size: 16px; margin: 0 0 10px; letter-spacing: -.01em; display: flex; align-items: center; gap: 9px; }
+  .card h2 .ic { width: 26px; height: 26px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); display: grid; place-items: center; font-size: 15px; flex: none; }
+  .card p { margin: 8px 0; color: var(--text); }
+  .muted2 { color: var(--muted); font-size: 13px; }
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .vs > div { border-radius: 12px; padding: 14px; border: 1px solid var(--border); }
+  .vs .bad { background: color-mix(in srgb, var(--danger) 8%, transparent); }
+  .vs .good { background: color-mix(in srgb, var(--success) 9%, transparent); }
+  .vs h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+  .vs .bad h3 { color: var(--danger); } .vs .good h3 { color: var(--success); }
+  .flow { list-style: none; margin: 0; padding: 0; }
+  .flow li { display: flex; gap: 12px; padding: 9px 0; align-items: flex-start; }
+  .flow .n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  .steps { counter-reset: s; list-style: none; margin: 0; padding: 0; }
+  .steps li { position: relative; padding: 12px 0 12px 42px; border-bottom: 1px solid var(--border); }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before { counter-increment: s; content: counter(s); position: absolute; left: 0; top: 11px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; }
+  .steps b { display: block; margin-bottom: 2px; }
+  .pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--chip); color: var(--muted); }
+  .cta { position: sticky; bottom: 0; padding: 14px 0 0; }
+  .cta button { width: 100%; padding: 14px; font-size: 15px; font-weight: 700; border-radius: 12px; background: var(--accent); color: #fff; border: none; box-shadow: var(--shadow-lg); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="logo"><svg viewBox="0 0 108 108"><path d="M54 20c-14 0-24 10-24 24 0 17 24 44 24 44s24-27 24-44c0-14-10-24-24-24z" fill="#fff"/><circle cx="54" cy="44" r="9" fill="#2563eb"/></svg></div>
+    <h1>Tag Tracker</h1>
+    <p>Your tag's full travel history &amp; anti-theft alerts</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="ic">?</span> Why this app exists</h2>
+    <div class="vs">
+      <div class="bad"><h3>Google Find Hub</h3><p class="muted2">Shows only the <b>last</b> location. No history — you can't see where your tag has been.</p></div>
+      <div class="good"><h3>Tag Tracker</h3><p class="muted2">Saves <b>every</b> location over time: full route, day→year history, replay, and theft alerts.</p></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="ic">↻</span> How a location reaches your phone</h2>
+    <ul class="flow">
+      <li><span class="n">1</span><div>Your tag broadcasts a tiny encrypted Bluetooth signal every 1–2 seconds.</div></li>
+      <li><span class="n">2</span><div>Any Android phone passing nearby (~10–30 m) detects it and uploads the encrypted position to Google — silently and anonymously.</div></li>
+      <li><span class="n">3</span><div>Your phone asks Google for it over the internet, and <b>only your phone</b> can decrypt it (that's the Unlock step).</div></li>
+      <li><span class="n">4</span><div>It's drawn on your map, saved to history, and synced to Google Drive.</div></li>
+    </ul>
+    <p class="muted2">Updates come whenever a phone passes the tag — often in busy areas, rarely in empty ones. Your phone receives over the internet, so the tag can be anywhere.</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="ic">⚑</span> First-time setup</h2>
+    <ol class="steps">
+      <li><b>Sign in to Google</b><span class="muted2">Use the account your tag is on. This lists your tags.</span></li>
+      <li><b>Unlock encryption</b> <span class="pill">required</span><span class="muted2">Enter your phone's screen lock on Google's page — this lets your phone decrypt locations. Without it the map stays empty.</span></li>
+      <li><b>Turn on background checking</b><span class="muted2">The app checks every 15 min and saves each location, using almost no battery.</span></li>
+      <li><b>Sync to Google Drive</b> <span class="pill">recommended</span><span class="muted2">Default mode auto-saves to your Drive, so a new phone gets your history back automatically.</span></li>
+      <li><b>Park &amp; guard</b><span class="muted2">Tap Park when you leave the bike — you'll get a loud alert if it moves.</span></li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2><span class="ic">★</span> What you can do</h2>
+    <p class="muted2">• See the full route for Today, 2 days, 7 days, 30 days, a year, or any dates &nbsp; • Replay the trip &nbsp; • Ring the tag when you're near it &nbsp; • Export CSV/GPX for the police &nbsp; • Lock the app with a password &nbsp; • Switch between OpenStreetMap, Google Maps &amp; satellite.</p>
+  </div>
+
+  <div class="cta"><button onclick="(window.TagTrackerApp&&TagTrackerApp.doneHelp&&TagTrackerApp.doneHelp())||window.close()">Got it — start setup</button></div>
+</div>
+</body>
+</html>
