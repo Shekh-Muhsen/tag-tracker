@@ -34,6 +34,20 @@ public class PollWorker extends Worker {
         Context ctx = getApplicationContext();
         int added = TagApp.py(ctx).callAttr("poll").toInt();
         DriveBackup.backupIfDue(ctx, added > 0);
+
+        // Guard mode: alert loudly if a tag moved (e.g. a stolen bike being ridden away).
+        if (added > 0 && TagApp.prefs(ctx).getBoolean(TagApp.KEY_GUARD, false)) {
+            try {
+                org.json.JSONArray moves = new org.json.JSONArray(
+                        TagApp.py(ctx).callAttr("new_movements").toString());
+                for (int i = 0; i < moves.length(); i++) {
+                    org.json.JSONObject m = moves.getJSONObject(i);
+                    Notify.theftAlert(ctx, m.getString("name"), m.getInt("moved_m"),
+                            m.getDouble("lat"), m.getDouble("lon"));
+                }
+            } catch (Exception ignored) {
+            }
+        }
         boolean drive = DriveBackup.enabled(ctx)
                 || TagApp.prefs(ctx).getBoolean(TagApp.KEY_DRIVE_AUTO, false);
         String when = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)

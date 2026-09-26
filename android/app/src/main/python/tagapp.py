@@ -113,6 +113,49 @@ def poll() -> int:
             pass
 
 
+def _haversine_m(a_lat, a_lon, b_lat, b_lon) -> float:
+    import math
+    r = 6371000.0
+    p = math.pi / 180
+    dlat = (b_lat - a_lat) * p
+    dlon = (b_lon - a_lon) * p
+    h = (math.sin(dlat / 2) ** 2
+         + math.cos(a_lat * p) * math.cos(b_lat * p) * math.sin(dlon / 2) ** 2)
+    return 2 * r * math.asin(math.sqrt(h))
+
+
+def guard_on() -> bool:
+    return _load_status().get("guard", False)
+
+
+def set_guard(on: bool):
+    _save_status(guard=bool(on))
+
+
+def new_movements(threshold_m: float = 150) -> str:
+    """Theft/guard alerts: devices whose newest saved point is more than threshold metres
+    from the point before it (i.e. it MOVED). Each moving point is reported only once.
+    threshold is above typical GPS jitter so a parked tag doesn't false-alarm."""
+    from server import db
+    s = _load_status()
+    seen = s.get("guard_seen", {})
+    out = []
+    for d in db.get_devices():
+        pts = [p for p in db.get_history(d["id"], 0, 2 ** 40) if p["lat"] is not None]
+        if len(pts) < 2:
+            continue
+        a, b = pts[-2], pts[-1]
+        if b["ts"] <= seen.get(d["id"], 0):
+            continue  # already evaluated this point
+        seen[d["id"]] = b["ts"]
+        dm = _haversine_m(a["lat"], a["lon"], b["lat"], b["lon"])
+        if dm >= threshold_m:
+            out.append({"name": d["name"], "id": d["id"], "lat": b["lat"], "lon": b["lon"],
+                        "moved_m": round(dm), "ts": b["ts"]})
+    _save_status(guard_seen=seen)
+    return json.dumps(out)
+
+
 def _drive_default_on() -> bool:
     return _load_status().get("drive_default", False)
 

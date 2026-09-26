@@ -19,6 +19,7 @@ public class TagApp extends Application {
     static final String KEY_DRIVE_AUTO = "drive_auto";
     static final String KEY_LAST_BACKUP = "last_backup_ms";
     static final String KEY_BACKUP_MINUTES = "backup_minutes";
+    static final String KEY_GUARD = "guard_mode";
     // App lock (local to THIS phone only — never synced to Drive or Google).
     static final String KEY_APP_PW = "app_pw";        // salt:hash
     static final String KEY_APP_HINT = "app_hint";    // recovery hint text

@@ -221,7 +221,20 @@ public class SettingsActivity extends Activity {
             toast("Checking Find Hub…");
         });
 
-        heading("5. App lock (this phone only)");
+        heading("5. Theft / guard alerts");
+        note("Turn this ON when the bike is parked. If a tag MOVES more than ~150 m, you get a LOUD "
+                + "notification with a Maps link – so you can act fast if it's stolen. Uses the same "
+                + "background checks, so no extra battery. Tip: if it's stolen, share the live location and history "
+                + "with the police – don't confront the thief yourself.");
+        boolean guard = TagApp.prefs(this).getBoolean(TagApp.KEY_GUARD, false);
+        info(guard ? "✓ Guard mode is ON – you'll be alerted if a tag moves."
+                : "Guard mode is off.");
+        button(guard ? "Turn OFF guard mode" : "Turn ON guard mode", v -> {
+            TagApp.prefs(this).edit().putBoolean(TagApp.KEY_GUARD, !guard).apply();
+            render();
+        });
+
+        heading("6. App lock (this phone only)");
         note("Protect the app with a password so no one who picks up your phone can open your tracker. "
                 + "The password and hint are stored ONLY on this phone – never sent to Google or Drive, so they "
                 + "can't be recovered from anywhere else. If you forget it and the hint doesn't help, reinstall the app.");
