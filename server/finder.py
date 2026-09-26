@@ -194,6 +194,19 @@ def locate(canonic_id: str, timeout: float = 90) -> list[dict]:
     return _decrypt(parse_device_update_protobuf(slot["result"]))
 
 
+def stop_listening() -> None:
+    """Drops the FCM connection between checks so the app uses almost no battery while idle.
+    The next locate() re-registers quickly."""
+    global _listener_registered
+    if _listener_registered:
+        try:
+            from Auth.fcm_receiver import FcmReceiver
+            FcmReceiver().stop_listening()
+        except Exception:
+            pass
+        _listener_registered = False
+
+
 def play_sound(canonic_id: str, start: bool = True) -> None:
     """Rings (or stops ringing) the tag, like Find Hub's 'Play sound'."""
     _ensure_imported()

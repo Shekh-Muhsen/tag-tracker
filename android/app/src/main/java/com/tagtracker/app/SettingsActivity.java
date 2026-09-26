@@ -111,8 +111,11 @@ public class SettingsActivity extends Activity {
         });
 
         heading("2. Background checking");
-        note("The app checks Find Hub in the background and saves every location. Android's minimum interval "
-                + "is 15 minutes. For reliable background work, allow the app to ignore battery optimisation.");
+        note("The app checks Find Hub in the background with Android WorkManager (Google's battery-efficient "
+                + "scheduler) and saves every location. It uses almost no battery while idle: it only wakes for a "
+                + "few seconds per check, needs a network connection, and closes the connection in between. It uses "
+                + "NO device-location permission (locations come from Google's network, not your phone's GPS). "
+                + "Android's minimum interval is 15 minutes; pick a longer one to use even less battery.");
         int interval = TagApp.intervalMinutes(this);
         info("Currently every " + interval + " minutes.");
         LinearLayout rowI = row();
@@ -127,9 +130,11 @@ public class SettingsActivity extends Activity {
         }
         root.addView(rowI);
         if (!isIgnoringBattery()) {
-            button("Allow background running", v -> requestIgnoreBattery());
+            note("Optional: only if your phone (Xiaomi/Samsung/etc.) aggressively kills background apps, allow "
+                    + "unrestricted running so checks aren't skipped. Not required on most phones.");
+            button("Allow unrestricted background (optional)", v -> requestIgnoreBattery());
         } else {
-            info("✓ Battery optimisation is off for this app.");
+            info("✓ Unrestricted background running is allowed.");
         }
 
         heading("3. Sync to Google Drive");

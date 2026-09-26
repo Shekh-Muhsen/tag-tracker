@@ -87,7 +87,7 @@ def list_tags_json() -> str:
 
 def poll() -> int:
     """Runs one check of all tags. Returns number of new locations."""
-    from server import poller
+    from server import finder, poller
     _save_status(running=True)
     try:
         added = poller.poll_once()
@@ -98,6 +98,12 @@ def poll() -> int:
         traceback.print_exc()
         _save_status(running=False, last_run=int(time.time()), last_error=str(e) or type(e).__name__)
         return 0
+    finally:
+        # Close the network connection so the app uses ~no battery until the next check.
+        try:
+            finder.stop_listening()
+        except Exception:
+            pass
 
 
 def locate_now(device_id: str) -> int:
