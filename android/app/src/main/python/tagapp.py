@@ -209,6 +209,16 @@ def drive_default_upload() -> str:
     from server.config import DATA_DIR
     client = drive_sync.DriveClient(drive_sync.token_from_login())
     folder = client.history_folder()
+
+    # Free tier: back up only the last 1 day, as one small file. Pro: full chunked history.
+    if not license_state()["licensed"]:
+        floor = int(time.time()) - 24 * 3600
+        tmp = str(DATA_DIR / "recent-1day.csv.gz")
+        db.export_csv(tmp, None, floor, 2 ** 40, gz=True)
+        client.upload(tmp, "recent-1day.csv.gz", folder, content_type="application/gzip")
+        _save_status(drive_default_last=int(time.time()), drive_default_error=None)
+        return "synced last 1 day (free)"
+
     total = db.location_count()
     nchunks = max(1, (total + CHUNK_ROWS - 1) // CHUNK_ROWS)
     manifest = _load_status().get("drive_chunks", {})
@@ -270,8 +280,14 @@ def record_backup(error: str | None):
 
 # ---------- data for the map UI (same shapes as the web server's API) ----------
 
+def set_phone_id(phone_id: str):
+    _save_status(phone_id=phone_id)
+
+
 def license_state(phone_id: str = "") -> dict:
     from server import license as lic
+    if not phone_id:
+        phone_id = _load_status().get("phone_id", "")
     key = _load_status().get("license_key")
     if not key:
         return {"licensed": False, "tags": lic.FREE_TAGS, "free_hours": lic.FREE_HISTORY_HOURS,

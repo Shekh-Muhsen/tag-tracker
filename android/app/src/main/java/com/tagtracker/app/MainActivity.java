@@ -85,6 +85,9 @@ public class MainActivity extends Activity {
             requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 9);
         }
         if (!TagApp.prefs(this).getBoolean(TagApp.KEY_PAUSED, false)) PollWorker.schedule(this);
+        new Thread(() -> {
+            try { TagApp.py(this).callAttr("set_phone_id", TagApp.deviceId(this)); } catch (Exception ignored) {}
+        }).start();
         maybeRestoreFromDrive();
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
         else web.loadUrl("https://appassets.androidplatform.net/assets/web/index.html");

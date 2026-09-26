@@ -173,7 +173,7 @@ def rename_device(device_id: str, name: str, color: str | None):
 CSV_HEADER = ["tag_id", "tag", "time_local", "unix", "lat", "lon", "altitude", "accuracy_m", "own_report", "place"]
 
 
-def export_csv(path, device_id=None, start=0, end=2**40) -> int:
+def export_csv(path, device_id=None, start=0, end=2**40, gz=False) -> int:
     """Writes locations to a CSV file (opens in Google Sheets / Excel). Returns row count."""
     with connect() as c:
         names = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM devices")}
@@ -184,7 +184,10 @@ def export_csv(path, device_id=None, start=0, end=2**40) -> int:
             q += " AND device_id=?"
             args.append(device_id)
         rows = c.execute(q + " ORDER BY device_id, ts", args).fetchall()
-    with open(path, "w", newline="", encoding="utf-8") as f:
+    import gzip as _gzip
+    opener = (lambda p: _gzip.open(p, "wt", newline="", encoding="utf-8")) if gz else \
+             (lambda p: open(p, "w", newline="", encoding="utf-8"))
+    with opener(path) as f:
         w = csv.writer(f)
         w.writerow(CSV_HEADER)
         for r in rows:
