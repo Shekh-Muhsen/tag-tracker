@@ -127,6 +127,9 @@ def locate_now(device_id: str, user: str = Depends(require_user)):
 @app.post("/api/sound/{device_id}")
 def sound(device_id: str, user: str = Depends(require_user)):
     from . import finder
+    if not finder.auth_state()["signed_in"]:
+        raise HTTPException(400, "This server isn't connected to Google yet, so it can't ring the tag. "
+                                 "Ring/Locate need the Google location sign-in (Drive backup is separate).")
     try:
         finder.play_sound(device_id, True)
     except Exception as e:
