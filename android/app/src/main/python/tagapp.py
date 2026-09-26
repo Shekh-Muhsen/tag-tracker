@@ -197,41 +197,70 @@ def _month_bounds(ym: str):
     return start, int(time.mktime((ny, nm, 1, 0, 0, 0, 0, 0, -1))) - 1
 
 
+# ~1000 rows per chunk keeps each gzipped file well under 100 KB (~10-20 KB on the wire).
+CHUNK_ROWS = 1000
+
+
 def drive_default_upload() -> str:
-    """Efficient sync: one CSV per month under TagTracker/history/, re-uploading only the
-    months whose data changed (in practice just the current month). Bounded upload size."""
+    """Minimal-bandwidth sync: history is split into fixed ~100 KB chunks (chunk-00000.csv.gz …)
+    under TagTracker/history/. Rows are only appended, so a filled chunk never changes — each
+    sync re-uploads ONLY the last, growing chunk (gzipped, ~10-20 KB). Nothing else is re-sent."""
     from server import db, drive_sync
     from server.config import DATA_DIR
     client = drive_sync.DriveClient(drive_sync.token_from_login())
     folder = client.history_folder()
-    manifest = _load_status().get("drive_months", {})
-    tmp = str(DATA_DIR / "month.csv")
+    total = db.location_count()
+    nchunks = max(1, (total + CHUNK_ROWS - 1) // CHUNK_ROWS)
+    manifest = _load_status().get("drive_chunks", {})
+    tmp = str(DATA_DIR / "chunk.csv.gz")
     changed = 0
-    for ym, count in db.months_with_counts():
-        if manifest.get(ym) == count:
-            continue  # unchanged since last upload -> skip (that's the efficiency)
-        start, end = _month_bounds(ym)
-        db.export_csv(tmp, None, start, end)
-        client.upload(tmp, f"locations-{ym}.csv", folder)
-        manifest[ym] = count
+    for i in range(nchunks):
+        rows = min(CHUNK_ROWS, total - i * CHUNK_ROWS)
+        if manifest.get(str(i)) == rows:
+            continue  # sealed, unchanged -> skip (no upload)
+        db.export_chunk(tmp, i * CHUNK_ROWS, CHUNK_ROWS, gz=True)
+        client.upload(tmp, f"chunk-{i:05d}.csv.gz", folder, content_type="application/gzip")
+        manifest[str(i)] = rows
         changed += 1
-    _save_status(drive_months=manifest, drive_default_last=int(time.time()), drive_default_error=None)
-    return f"synced {changed} month file(s)"
+    _save_status(drive_chunks=manifest, drive_default_last=int(time.time()), drive_default_error=None)
+    return f"synced {changed} chunk(s)"
 
 
 def drive_default_restore() -> int:
-    """Pull every monthly file from TagTracker/history/ and merge them (cross-device retrieve)."""
+    """Cross-device retrieve, backward-compatible: scans the WHOLE TagTracker folder tree and
+    imports EVERY CSV it finds — new gzipped chunks, old monthly files, the original
+    history.csv, or any hand-made CSV. All merged safely (duplicates are ignored)."""
     from server import db, drive_sync
     from server.config import DATA_DIR
     client = drive_sync.DriveClient(drive_sync.token_from_login())
-    folder = client.history_folder()
-    tmp = str(DATA_DIR / "restore-month.csv")
+    root = client.ensure_folder("TagTracker")
+    tmp = str(DATA_DIR / "restore-file")
     added = 0
-    for f in client.list_children(folder):
-        if not f["name"].endswith(".csv"):
-            continue
-        client.download_id(f["id"], tmp)
-        added += db.import_csv(tmp)
+    seen = set()
+
+    def scan(folder_id):
+        nonlocal added
+        if folder_id in seen:
+            return
+        seen.add(folder_id)
+        for f in client.list_children(folder_id):
+            name = (f.get("name") or "").lower()
+            if f.get("mimeType") == drive_sync.FOLDER_MIME:
+                scan(f["id"])  # recurse into history/, csv/, etc.
+            elif name.endswith(".csv.gz") or name.endswith(".gz"):
+                client.download_id(f["id"], tmp)
+                try:
+                    added += db.import_gz(tmp)
+                except Exception:
+                    pass
+            elif name.endswith(".csv"):
+                client.download_id(f["id"], tmp)
+                try:
+                    added += db.import_csv(tmp)
+                except Exception:
+                    pass
+
+    scan(root)
     return added
 
 

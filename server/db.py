@@ -217,6 +217,52 @@ def import_csv(path) -> int:
     return added
 
 
+def location_count() -> int:
+    with connect() as c:
+        return c.execute("SELECT COUNT(*) FROM locations").fetchone()[0]
+
+
+def export_chunk(path: str, offset: int, limit: int, gz: bool = True) -> int:
+    """Exports a fixed slice of rows (ordered by insert id) to a CSV, optionally gzipped.
+    Because rows only ever get appended (never deleted/reordered), a filled chunk is stable,
+    so only the last, growing chunk ever changes — that's what keeps sync bandwidth tiny."""
+    import gzip as _gzip
+    with connect() as c:
+        names = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM devices")}
+        rows = c.execute(
+            "SELECT device_id, ts, lat, lon, altitude, accuracy, is_own_report, semantic_name "
+            "FROM locations ORDER BY id LIMIT ? OFFSET ?", (limit, offset)).fetchall()
+    opener = (lambda p: _gzip.open(p, "wt", encoding="utf-8", newline="")) if gz else \
+             (lambda p: open(p, "w", encoding="utf-8", newline=""))
+    with opener(path) as f:
+        w = csv.writer(f)
+        w.writerow(CSV_HEADER)
+        for r in rows:
+            w.writerow([r["device_id"], names.get(r["device_id"], ""),
+                        time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(r["ts"])), r["ts"],
+                        r["lat"], r["lon"], r["altitude"], r["accuracy"], r["is_own_report"],
+                        r["semantic_name"] or ""])
+    return len(rows)
+
+
+def import_gz(path: str) -> int:
+    """Imports a gzipped CSV chunk (downloaded from Drive)."""
+    import gzip as _gzip
+    import tempfile
+    with _gzip.open(path, "rt", encoding="utf-8") as g:
+        data = g.read()
+    tmp = tempfile.mktemp(suffix=".csv")
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(data)
+    try:
+        return import_csv(tmp)
+    finally:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+
+
 def months_with_counts():
     """[(YYYY-MM, row_count), ...] over all locations, for incremental monthly Drive sync."""
     with connect() as c:

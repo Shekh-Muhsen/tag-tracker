@@ -8,8 +8,26 @@ grows. Signing into the app on another phone (same Google account) pulls it all 
 Everything lives under a specific folder — never the Drive root.
 """
 import json
+import time
 
 import requests
+
+
+def _retry(make_request):
+    """Calls make_request() and retries with exponential backoff on Drive rate limits
+    (HTTP 429, or 403 'rateLimitExceeded'/'Quota exceeded'). Keeps sync robust when many
+    small chunks are synced in a row."""
+    delay = 1.0
+    r = None
+    for _ in range(6):
+        r = make_request()
+        if r.status_code == 429 or (r.status_code == 403 and (
+                "ateLimit" in r.text or "Quota exceeded" in r.text or "userRateLimit" in r.text)):
+            time.sleep(delay)
+            delay = min(delay * 2, 20)
+            continue
+        return r
+    return r
 
 DRIVE = "https://www.googleapis.com/drive/v3"
 UPLOAD = "https://www.googleapis.com/upload/drive/v3"
@@ -32,9 +50,9 @@ class DriveClient:
     def __init__(self, token: str):
         self.h = {"Authorization": "Bearer " + token}
 
-    def _list(self, q: str, fields: str = "files(id,name,modifiedTime,size)"):
-        r = requests.get(f"{DRIVE}/files", headers=self.h,
-                         params={"q": q, "fields": fields, "spaces": "drive", "pageSize": 200}, timeout=30)
+    def _list(self, q: str, fields: str = "files(id,name,mimeType,modifiedTime,size)"):
+        r = _retry(lambda: requests.get(f"{DRIVE}/files", headers=self.h,
+                   params={"q": q, "fields": fields, "spaces": "drive", "pageSize": 200}, timeout=30))
         r.raise_for_status()
         return r.json().get("files", [])
 
@@ -48,8 +66,8 @@ class DriveClient:
         meta = {"name": name, "mimeType": FOLDER_MIME}
         if parent_id:
             meta["parents"] = [parent_id]
-        r = requests.post(f"{DRIVE}/files", headers={**self.h, "Content-Type": "application/json"},
-                          data=json.dumps(meta), timeout=30)
+        r = _retry(lambda: requests.post(f"{DRIVE}/files", headers={**self.h, "Content-Type": "application/json"},
+                   data=json.dumps(meta), timeout=30))
         r.raise_for_status()
         return r.json()["id"]
 
@@ -60,21 +78,21 @@ class DriveClient:
     def find_file(self, name: str, parent_id: str):
         return next(iter(self._list(f"name='{name}' and '{parent_id}' in parents and trashed=false")), None)
 
-    def upload(self, local_path: str, name: str, parent_id: str) -> str:
+    def upload(self, local_path: str, name: str, parent_id: str, content_type: str = "text/csv") -> str:
         with open(local_path, "rb") as f:
             data = f.read()
         existing = self.find_file(name, parent_id)
         if existing:
-            r = requests.patch(f"{UPLOAD}/files/{existing['id']}?uploadType=media",
-                               headers={**self.h, "Content-Type": "text/csv"}, data=data, timeout=120)
+            r = _retry(lambda: requests.patch(f"{UPLOAD}/files/{existing['id']}?uploadType=media",
+                       headers={**self.h, "Content-Type": content_type}, data=data, timeout=120))
         else:
             b = "tagtracker7boundary"
             body = (f"--{b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"
                     + json.dumps({"name": name, "parents": [parent_id]})
-                    + f"\r\n--{b}\r\nContent-Type: text/csv\r\n\r\n").encode() + data + f"\r\n--{b}--".encode()
-            r = requests.post(f"{UPLOAD}/files?uploadType=multipart",
-                              headers={**self.h, "Content-Type": f"multipart/related; boundary={b}"},
-                              data=body, timeout=120)
+                    + f"\r\n--{b}\r\nContent-Type: {content_type}\r\n\r\n").encode() + data + f"\r\n--{b}--".encode()
+            r = _retry(lambda: requests.post(f"{UPLOAD}/files?uploadType=multipart",
+                       headers={**self.h, "Content-Type": f"multipart/related; boundary={b}"},
+                       data=body, timeout=120))
         r.raise_for_status()
         return r.json()["id"]
 
@@ -82,7 +100,7 @@ class DriveClient:
         return self._list(f"'{parent_id}' in parents and trashed=false")
 
     def download_id(self, file_id: str, dest: str):
-        r = requests.get(f"{DRIVE}/files/{file_id}?alt=media", headers=self.h, timeout=120)
+        r = _retry(lambda: requests.get(f"{DRIVE}/files/{file_id}?alt=media", headers=self.h, timeout=120))
         r.raise_for_status()
         with open(dest, "wb") as f:
             f.write(r.content)
