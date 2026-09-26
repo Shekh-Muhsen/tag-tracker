@@ -111,6 +111,29 @@ def poll_now(user: str = Depends(require_user)):
     return {"ok": True}
 
 
+@app.post("/api/locate/{device_id}")
+def locate_now(device_id: str, user: str = Depends(require_user)):
+    from . import finder
+    st = finder.auth_state()
+    if not st["signed_in"] or not st["unlocked"]:
+        raise HTTPException(400, "Google account not fully connected (needs sign-in + encryption unlock)")
+    try:
+        added = db.insert_locations(device_id, finder.locate(device_id))
+    except Exception as e:
+        raise HTTPException(502, f"Could not locate: {e}")
+    return {"ok": True, "added": added}
+
+
+@app.post("/api/sound/{device_id}")
+def sound(device_id: str, user: str = Depends(require_user)):
+    from . import finder
+    try:
+        finder.play_sound(device_id, True)
+    except Exception as e:
+        raise HTTPException(502, f"Could not ring tag: {e}")
+    return {"ok": True}
+
+
 @app.get("/api/history/{device_id}")
 def history(device_id: str, start: int, end: int, format: str = "json", user: str = Depends(require_user)):
     points = db.get_history(device_id, start, end)

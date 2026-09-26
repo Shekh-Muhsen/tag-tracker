@@ -95,6 +95,31 @@ def poll() -> int:
         return 0
 
 
+def locate_now(device_id: str) -> int:
+    """Fetches this one tag's current location right now and saves it. Returns new-point count.
+    Raises a clear error if step 2 (encryption unlock) hasn't been done."""
+    from server import db, finder
+    st = finder.auth_state()
+    if not st["signed_in"]:
+        raise RuntimeError("Not signed in yet. Do step 1 in Setup.")
+    if not st["unlocked"]:
+        raise RuntimeError("Encryption is locked. Do step 2 (Unlock encryption keys) in Setup to see locations.")
+    added = db.insert_locations(device_id, finder.locate(device_id))
+    return added
+
+
+def play_sound(device_id: str):
+    from server import finder
+    if not finder.auth_state()["signed_in"]:
+        raise RuntimeError("Not signed in yet.")
+    finder.play_sound(device_id, True)
+
+
+def stop_sound(device_id: str):
+    from server import finder
+    finder.play_sound(device_id, False)
+
+
 def record_backup(error: str | None):
     _save_status(backup_last_run=int(time.time()), backup_error=error)
 

@@ -177,6 +177,17 @@ def locate(canonic_id: str, timeout: float = 90) -> list[dict]:
     return _decrypt(parse_device_update_protobuf(slot["result"]))
 
 
+def play_sound(canonic_id: str, start: bool = True) -> None:
+    """Rings (or stops ringing) the tag, like Find Hub's 'Play sound'."""
+    _ensure_imported()
+    from NovaApi.ExecuteAction.PlaySound.sound_request import create_sound_request
+    from NovaApi.nova_request import nova_request
+    from NovaApi.scopes import NOVA_ACTION_API_SCOPE
+
+    fcm_token = _register_listener()
+    nova_request(NOVA_ACTION_API_SCOPE, create_sound_request(start, canonic_id, fcm_token))
+
+
 def _decrypt(device_update) -> list[dict]:
     """Same logic as GoogleFindMyTools' decrypt_location_response_locations, but returns data."""
     from FMDNCrypto.foreign_tracker_cryptor import decrypt

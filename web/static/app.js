@@ -36,6 +36,8 @@
     history: (id, s, e) => NATIVE ? JSON.parse(NATIVE.history(id, s, e))
       : api(`/api/history/${encodeURIComponent(id)}?start=${s}&end=${e}`),
     pollNow: () => NATIVE ? NATIVE.pollNow() : api('/api/poll-now', { method: 'POST' }),
+    locate: (id) => NATIVE ? NATIVE.locateNow(id) : api(`/api/locate/${encodeURIComponent(id)}`, { method: 'POST' }),
+    sound: (id) => NATIVE ? NATIVE.playSound(id) : api(`/api/sound/${encodeURIComponent(id)}`, { method: 'POST' }),
     rename: (id, name) => NATIVE ? NATIVE.rename(id, name)
       : api(`/api/devices/${encodeURIComponent(id)}`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }),
@@ -216,6 +218,30 @@
   };
   $('csv').addEventListener('click', () => download('csv'));
   $('gpx').addEventListener('click', () => download('gpx'));
+
+  async function locateNow() {
+    if (!deviceId) return;
+    const btn = $('locate');
+    btn.disabled = true; btn.textContent = '📍 Locating…';
+    $('pollStatus').textContent = 'Asking the tag for its current location…';
+    const done = () => { btn.disabled = false; btn.textContent = '📍 Locate now'; };
+    try {
+      await data.locate(deviceId);
+    } catch (e) { $('pollStatus').textContent = e.message; done(); return; }
+    if (NATIVE) {
+      // The app fetches in the background and returns at once; poll for the saved point.
+      let t = 0;
+      const iv = setInterval(async () => { await refresh(); if (++t >= 8) { clearInterval(iv); done(); } }, 4000);
+    } else {
+      await refresh(); done();
+    }
+  }
+  $('locate').addEventListener('click', locateNow);
+  $('ring').addEventListener('click', async () => {
+    if (!deviceId) return;
+    try { await data.sound(deviceId); $('pollStatus').textContent = 'Ringing the tag…'; }
+    catch (e) { alert(e.message); }
+  });
   $('rename').addEventListener('click', async () => {
     const d = devices.find((x) => x.id === deviceId); if (!d) return;
     const name = prompt('New name for this tag', d.name); if (!name) return;

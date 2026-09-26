@@ -98,6 +98,31 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void locateNow(String deviceId) {
+            new Thread(() -> {
+                try {
+                    int n = TagApp.py(MainActivity.this).callAttr("locate_now", deviceId).toInt();
+                    toastUi(n > 0 ? "Location updated – saved to history" : "No new location right now");
+                    DriveBackup.backupIfDue(MainActivity.this, n > 0);
+                } catch (Exception e) {
+                    toastUi(msg(e));
+                }
+            }).start();
+        }
+
+        @JavascriptInterface
+        public void playSound(String deviceId) {
+            new Thread(() -> {
+                try {
+                    TagApp.py(MainActivity.this).callAttr("play_sound", deviceId);
+                    toastUi("Ringing the tag…");
+                } catch (Exception e) {
+                    toastUi(msg(e));
+                }
+            }).start();
+        }
+
+        @JavascriptInterface
         public void rename(String deviceId, String name) {
             TagApp.py(MainActivity.this).callAttr("rename", deviceId, name);
         }
@@ -132,6 +157,14 @@ public class MainActivity extends Activity {
                 }
             }).start();
         }
+    }
+
+    private void toastUi(String m) {
+        runOnUiThread(() -> Toast.makeText(this, m, Toast.LENGTH_LONG).show());
+    }
+
+    private static String msg(Exception e) {
+        return e.getMessage() != null ? e.getMessage() : e.toString();
     }
 
     @Override
