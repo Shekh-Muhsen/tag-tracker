@@ -205,10 +205,21 @@ def drive_default_upload() -> str:
     """Minimal-bandwidth sync: history is split into fixed ~100 KB chunks (chunk-00000.csv.gz …)
     under TagTracker/history/. Rows are only appended, so a filled chunk never changes — each
     sync re-uploads ONLY the last, growing chunk (gzipped, ~10-20 KB). Nothing else is re-sent."""
-    from server import db, drive_sync
+    from server import db, drive_sync, finder
     from server.config import DATA_DIR
-    client = drive_sync.DriveClient(drive_sync.token_from_login())
-    folder = client.history_folder()
+    if not finder.auth_state()["signed_in"]:
+        raise RuntimeError("Not signed in to Google yet. Do Setup → Sign in first.")
+    try:
+        token = drive_sync.token_from_login()
+    except Exception as e:
+        raise RuntimeError("Couldn't get Google Drive access from the sign-in. Use the CUSTOM Drive file "
+                           "option in Setup instead (it's reliable). Details: " + str(e))
+    client = drive_sync.DriveClient(token)
+    try:
+        folder = client.history_folder()
+    except Exception as e:
+        raise RuntimeError("Google Drive rejected access (the unofficial login may not grant Drive). "
+                           "Use the CUSTOM Drive file option in Setup instead. Details: " + str(e))
 
     # Free tier: back up only the last 1 day, as one small file. Pro: full chunked history.
     if not license_state()["licensed"]:
@@ -240,8 +251,10 @@ def drive_default_restore() -> int:
     """Cross-device retrieve, backward-compatible: scans the WHOLE TagTracker folder tree and
     imports EVERY CSV it finds — new gzipped chunks, old monthly files, the original
     history.csv, or any hand-made CSV. All merged safely (duplicates are ignored)."""
-    from server import db, drive_sync
+    from server import db, drive_sync, finder
     from server.config import DATA_DIR
+    if not finder.auth_state()["signed_in"]:
+        return 0
     client = drive_sync.DriveClient(drive_sync.token_from_login())
     root = client.ensure_folder("TagTracker")
     tmp = str(DATA_DIR / "restore-file")
