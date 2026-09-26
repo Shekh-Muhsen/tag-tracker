@@ -34,6 +34,13 @@ public class PollWorker extends Worker {
         Context ctx = getApplicationContext();
         int added = TagApp.py(ctx).callAttr("poll").toInt();
         DriveBackup.backupIfDue(ctx, added > 0);
+        boolean drive = DriveBackup.enabled(ctx)
+                || TagApp.prefs(ctx).getBoolean(TagApp.KEY_DRIVE_AUTO, false);
+        String when = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT)
+                .format(new java.util.Date());
+        Notify.syncStatus(ctx, added > 0
+                ? added + " new location(s)" + (drive ? " · synced to Drive" : "") + " · " + when
+                : "Checked" + (drive ? " · Drive up to date" : "") + " · " + when);
         return Result.success();
     }
 

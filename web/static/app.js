@@ -81,9 +81,26 @@
       : p.running ? 'Checking Google for new locations…'
       : p.last_error ? `Last check failed: ${p.last_error}`
       : p.last_run ? `Last checked ${ago(p.last_run)} · every ${p.interval_minutes} min` : 'Starting…';
-    const b = res.backup;
-    if (b?.enabled) $('pollStatus').textContent += b.last_error ? ` · Drive backup failed: ${b.last_error}`
-      : b.last_run ? ` · Backed up to Drive ${ago(b.last_run)}` : ' · Drive backup starting…';
+    renderSync(res.backup);
+  }
+
+  function renderSync(b) {
+    const el = $('sync');
+    if (!el) return;
+    el.classList.remove('ok', 'busy', 'err', 'off');
+    if (!b || !b.enabled) {
+      el.classList.add('off'); el.textContent = 'Drive off';
+      el.title = 'Google Drive sync is off. Turn it on in setup.';
+    } else if (b.last_error) {
+      el.classList.add('err'); el.textContent = 'Sync error';
+      el.title = 'Drive sync error: ' + b.last_error;
+    } else if (b.last_run) {
+      el.classList.add('ok'); el.textContent = 'Synced';
+      el.title = `Backed up to Google Drive ${ago(b.last_run)}` + (b.mode ? ` (${b.mode})` : '');
+    } else {
+      el.classList.add('busy'); el.textContent = 'Syncing…';
+      el.title = 'First Drive sync in progress…';
+    }
   }
 
   function renderLatest() {

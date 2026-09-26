@@ -73,6 +73,11 @@ public class MainActivity extends Activity {
             }
         });
 
+        if (android.os.Build.VERSION.SDK_INT >= 33
+                && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 9);
+        }
         PollWorker.schedule(this);
         maybeRestoreFromDrive();
         if (savedInstanceState != null) web.restoreState(savedInstanceState);

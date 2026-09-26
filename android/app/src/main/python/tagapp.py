@@ -181,8 +181,12 @@ def devices_json(interval_minutes: int, backup_enabled: bool) -> str:
         "devices": db.get_devices(),
         "poller": {"enabled": True, "running": bool(s.get("running")), "last_run": s.get("last_run"),
                    "last_error": s.get("last_error"), "interval_minutes": interval_minutes},
-        "backup": {"enabled": backup_enabled, "last_run": s.get("backup_last_run"),
-                   "last_error": s.get("backup_error")},
+        "backup": {
+            "enabled": backup_enabled or bool(s.get("drive_default")),
+            "mode": "default" if s.get("drive_default") else ("custom" if backup_enabled else None),
+            "last_run": s.get("drive_default_last") or s.get("backup_last_run"),
+            "last_error": s.get("drive_default_error") or s.get("backup_error"),
+        },
     })
 
 
