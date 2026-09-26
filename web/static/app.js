@@ -299,6 +299,7 @@
     }
   }
   $('park').addEventListener('click', async () => {
+    if (!licensed) { openLicense(); return; }  // theft/guard alerts are a Pro (key) feature
     const next = !parked;
     renderPark(next); // optimistic
     try { await data.setParked(next); } catch (e) { alert(e.message); }
