@@ -7,9 +7,15 @@
 
   const map = L.map('map', { preferCanvas: true, zoomControl: false }).setView([20, 0], 2);
   L.control.zoom({ position: 'topright' }).addTo(map);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  const streets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19, attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map);
+  const satellite = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19, attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics',
+    });
+  // Map / Satellite toggle, like the official Find Hub page.
+  L.control.layers({ Map: streets, Satellite: satellite }, null, { position: 'topright' }).addTo(map);
 
   const layers = { track: L.layerGroup().addTo(map), points: L.layerGroup().addTo(map), live: L.layerGroup().addTo(map), play: L.layerGroup().addTo(map) };
   let devices = [], deviceId = store.get('device'), range = { h: store.get('range') || '168' };
@@ -88,7 +94,7 @@
         + (d.last_error ? `<br><span class="error">${esc(d.last_error)}</span>` : '');
       return;
     }
-    el.innerHTML = `<b>${esc(d.name)}</b><br>Last seen ${ago(d.last_ts)} · ${fmt(d.last_ts)}<br>`
+    el.innerHTML = `<b>${esc(d.name)}</b><br>Last seen at ${fmt(d.last_ts)} <span class="muted">(${ago(d.last_ts)})</span><br>`
       + `<span class="muted">${d.point_count.toLocaleString()} locations stored in total</span>`
       + (d.last_error ? `<br><span class="error small">${esc(d.last_error)}</span>` : '');
     const ll = [d.last_lat, d.last_lon];
