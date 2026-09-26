@@ -139,10 +139,40 @@ public class SettingsActivity extends Activity {
 
         heading("3. Sync to Google Drive");
         note("The app keeps a copy on the phone (so the map loads instantly) AND uploads your full history to "
-                + "Google Drive – the cloud copy, safe even if you lose the phone.\n"
-                + "IMPORTANT: in the picker, tap the ☰ menu on the left and choose GOOGLE DRIVE (not Downloads/"
-                + "phone storage), pick a folder, and name the file e.g. TagTracker-history.csv. After that it "
-                + "uploads automatically whenever new locations arrive.");
+                + "Google Drive – the cloud copy, safe even if you lose the phone.");
+
+        // Default (automatic) mode: one fixed folder in the SAME Google account, no file picking.
+        // Signing into the app on another phone with the same account pulls the history back.
+        boolean autoDrive = TagApp.prefs(this).getBoolean(TagApp.KEY_DRIVE_AUTO, false);
+        info(autoDrive ? "✓ DEFAULT automatic sync is ON (folder ‘TagTracker’ in your Google account)."
+                : "DEFAULT: automatic sync to a ‘TagTracker’ folder in your own Google account – no "
+                  + "file picking, and it comes back automatically when you sign in on another phone.");
+        button(autoDrive ? "Sync default folder now" : "Use automatic default sync (recommended)", v -> {
+            TagApp.prefs(this).edit().putBoolean(TagApp.KEY_DRIVE_AUTO, true).apply();
+            new Thread(() -> {
+                try {
+                    TagApp.py(this).callAttr("set_drive_default", true);
+                    int got = TagApp.py(this).callAttr("drive_default_restore").toInt();
+                    TagApp.py(this).callAttr("drive_default_upload");
+                    toast(got > 0 ? "Default sync on – pulled " + got + " saved location(s) from Drive"
+                            : "Default sync on – Drive folder ready");
+                } catch (Exception e) {
+                    toast("Automatic sync needs the Google sign-in first: " + e.getMessage());
+                }
+                runOnUiThread(this::render);
+            }).start();
+        });
+        if (autoDrive) {
+            button("Turn off automatic sync", v -> {
+                TagApp.prefs(this).edit().putBoolean(TagApp.KEY_DRIVE_AUTO, false).apply();
+                new Thread(() -> { try { TagApp.py(this).callAttr("set_drive_default", false); } catch (Exception ignored) {} }).start();
+                render();
+            });
+        }
+
+        note("— or use a CUSTOM file (any account / location) —\n"
+                + "In the picker, tap ☰ and choose GOOGLE DRIVE (not phone storage), pick a folder, and name it "
+                + "e.g. TagTracker-history.csv.");
         if (DriveBackup.enabled(this)) {
             long last = TagApp.prefs(this).getLong(TagApp.KEY_LAST_BACKUP, 0);
             info("✓ Auto-syncing to your Drive file." + (last > 0

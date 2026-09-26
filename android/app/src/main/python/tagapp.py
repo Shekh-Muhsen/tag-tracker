@@ -99,11 +99,26 @@ def poll() -> int:
         _save_status(running=False, last_run=int(time.time()), last_error=str(e) or type(e).__name__)
         return 0
     finally:
+        # Auto-sync new points to the default Drive folder (fresh token minted each time,
+        # so it keeps working 24/7 with no re-login). Best-effort; never fails the poll.
+        try:
+            if _drive_default_on() and _load_status().get("last_added"):
+                drive_default_upload()
+        except Exception as e:
+            _save_status(drive_default_error=str(e))
         # Close the network connection so the app uses ~no battery until the next check.
         try:
             finder.stop_listening()
         except Exception:
             pass
+
+
+def _drive_default_on() -> bool:
+    return _load_status().get("drive_default", False)
+
+
+def set_drive_default(on: bool):
+    _save_status(drive_default=bool(on))
 
 
 def locate_now(device_id: str) -> int:
@@ -129,6 +144,28 @@ def play_sound(device_id: str):
 def stop_sound(device_id: str):
     from server import finder
     finder.play_sound(device_id, False)
+
+
+def drive_default_upload() -> str:
+    """Upload the full history to the DEFAULT Drive folder (same Google account as the tags).
+    This is what makes the data appear automatically on another phone."""
+    from server import db, drive_sync
+    from server.config import DATA_DIR
+    tmp = str(DATA_DIR / "history-upload.csv")
+    db.export_csv(tmp)
+    drive_sync.DriveClient(drive_sync.token_from_login()).upload(tmp)
+    _save_status(drive_default_last=int(time.time()), drive_default_error=None)
+    return "ok"
+
+
+def drive_default_restore() -> int:
+    """Pull history from the DEFAULT Drive folder onto this device (cross-device retrieve)."""
+    from server import db, drive_sync
+    from server.config import DATA_DIR
+    tmp = str(DATA_DIR / "history-restore.csv")
+    if not drive_sync.DriveClient(drive_sync.token_from_login()).download(tmp):
+        return 0
+    return db.import_csv(tmp)
 
 
 def record_backup(error: str | None):

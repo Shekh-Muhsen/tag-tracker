@@ -74,6 +74,7 @@ public class MainActivity extends Activity {
         });
 
         PollWorker.schedule(this);
+        maybeRestoreFromDrive();
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
         else web.loadUrl("https://appassets.androidplatform.net/assets/web/index.html");
     }
@@ -161,6 +162,22 @@ public class MainActivity extends Activity {
 
     private void toastUi(String m) {
         runOnUiThread(() -> Toast.makeText(this, m, Toast.LENGTH_LONG).show());
+    }
+
+    /** On a fresh device with automatic Drive sync on, pull history back from the default folder. */
+    private void maybeRestoreFromDrive() {
+        if (!TagApp.prefs(this).getBoolean(TagApp.KEY_DRIVE_AUTO, false)) return;
+        new Thread(() -> {
+            try {
+                int got = TagApp.py(this).callAttr("drive_default_restore").toInt();
+                if (got > 0) {
+                    toastUi("Restored " + got + " location(s) from your Google Drive");
+                    runOnUiThread(() -> { if (web != null) web.reload(); });
+                }
+            } catch (Exception ignored) {
+                // Not signed in yet, or offline; ignore silently.
+            }
+        }).start();
     }
 
     private static String msg(Exception e) {

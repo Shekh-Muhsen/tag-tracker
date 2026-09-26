@@ -14,6 +14,7 @@ public class TagApp extends Application {
     static final String PREFS = "tagtracker";
     static final String KEY_INTERVAL = "interval_minutes";
     static final String KEY_DRIVE_URI = "drive_uri";
+    static final String KEY_DRIVE_AUTO = "drive_auto";
     static final String KEY_LAST_BACKUP = "last_backup_ms";
     static final String KEY_BACKUP_MINUTES = "backup_minutes";
 
