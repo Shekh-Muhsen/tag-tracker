@@ -98,6 +98,23 @@ def sign_in_with_oauth_token(oauth_token: str) -> str:
     return resp.get("Email", "")
 
 
+def import_secrets_file(src_path: str) -> dict:
+    """Reliable alternative to the in-app login: copy a secrets file made by the desktop
+    'google-login' into place. No new Google auth happens, so it can't trip account
+    protection. Returns the resulting auth_state."""
+    import json
+    import shutil
+
+    _ensure_imported()
+    with open(src_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, dict) or not data.get("aas_token"):
+        raise RuntimeError("This file isn't a valid Google login file (no account token found).")
+    GOOGLE_SECRETS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(src_path, GOOGLE_SECRETS_PATH)
+    return auth_state()
+
+
 def shared_key_url() -> str:
     _ensure_imported()
     from KeyBackup.shared_key_request import get_security_domain_request_url

@@ -28,7 +28,7 @@ import java.util.Date;
 
 /** Setup and settings: Google connection, background checking, Google Drive backup. */
 public class SettingsActivity extends Activity {
-    private static final int REQ_SIGN_IN = 1, REQ_UNLOCK = 2, REQ_DRIVE_FILE = 3, REQ_RESTORE = 4;
+    private static final int REQ_SIGN_IN = 1, REQ_UNLOCK = 2, REQ_DRIVE_FILE = 3, REQ_RESTORE = 4, REQ_IMPORT = 5;
     private static final int[] INTERVALS = {15, 30, 60, 120};
 
     private LinearLayout root;
@@ -93,6 +93,23 @@ public class SettingsActivity extends Activity {
         if (signedIn && unlocked) info("✓ All set – the app can read and decrypt your tags.");
         if (error != null) info("Note: " + error);
 
+        // Option B alternative: import a login file made on a PC (most reliable).
+        note("— or —");
+        note("Option B: If the steps above fail, run the desktop setup once on a PC "
+                + "(python -m server.manage google-login), copy the resulting data/google_secrets.json to this "
+                + "phone, and import it here. No re-login needed on the phone.");
+        button("Import login file (google_secrets.json)", v -> {
+            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.setType("*/*");
+            i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/json", "text/plain", "*/*"});
+            try {
+                startActivityForResult(i, REQ_IMPORT);
+            } catch (Exception e) {
+                toast("No file picker available");
+            }
+        });
+
         heading("2. Background checking");
         note("The app checks Find Hub in the background and saves every location. Android's minimum interval "
                 + "is 15 minutes. For reliable background work, allow the app to ignore battery optimisation.");
@@ -116,9 +133,11 @@ public class SettingsActivity extends Activity {
         }
 
         heading("3. Sync to Google Drive");
-        note("Pick (or create) a CSV file in your Google Drive. After that the app uploads your full history to "
-                + "it automatically whenever new locations arrive – it is not a manual local-only save. "
-                + "In the picker: open Drive, choose a folder, and name it e.g. TagTracker-history.csv.");
+        note("The app keeps a copy on the phone (so the map loads instantly) AND uploads your full history to "
+                + "Google Drive – the cloud copy, safe even if you lose the phone.\n"
+                + "IMPORTANT: in the picker, tap the ☰ menu on the left and choose GOOGLE DRIVE (not Downloads/"
+                + "phone storage), pick a folder, and name the file e.g. TagTracker-history.csv. After that it "
+                + "uploads automatically whenever new locations arrive.");
         if (DriveBackup.enabled(this)) {
             long last = TagApp.prefs(this).getLong(TagApp.KEY_LAST_BACKUP, 0);
             info("✓ Auto-syncing to your Drive file." + (last > 0
@@ -208,6 +227,29 @@ public class SettingsActivity extends Activity {
                 String err = DriveBackup.backupNow(this);
                 toast(err == null ? "Drive sync set up" : "Sync failed: " + err);
                 runOnUiThread(this::render);
+            }).start();
+        } else if (requestCode == REQ_IMPORT && data != null && data.getData() != null) {
+            Uri uri = data.getData();
+            new Thread(() -> {
+                try {
+                    File tmp = new File(getCacheDir(), "import-secrets.json");
+                    try (InputStream in = getContentResolver().openInputStream(uri);
+                         OutputStream out = new FileOutputStream(tmp)) {
+                        byte[] buf = new byte[64 * 1024];
+                        int n;
+                        while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                    }
+                    String stateJson = TagApp.py(this).callAttr("import_secrets", tmp.getAbsolutePath()).toString();
+                    //noinspection ResultOfMethodCallIgnored
+                    tmp.delete();
+                    JSONObject st = new JSONObject(stateJson);
+                    toast(st.optBoolean("unlocked")
+                            ? "Login imported – signed in and unlocked. Tap Check now."
+                            : "Login imported, but it has no encryption key (unlock part). Locations may not decrypt.");
+                    runOnUiThread(this::render);
+                } catch (Exception e) {
+                    toast("Import failed: " + e.getMessage());
+                }
             }).start();
         } else if (requestCode == REQ_RESTORE && data != null && data.getData() != null) {
             Uri uri = data.getData();

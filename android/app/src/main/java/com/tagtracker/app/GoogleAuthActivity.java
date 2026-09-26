@@ -100,9 +100,11 @@ public class GoogleAuthActivity extends Activity {
     private String lastTried = "";
     private long lastTryMs = 0;
     private volatile boolean inFlight = false;
+    private int attempts = 0;
+    private static final int MAX_ATTEMPTS = 20; // ~2 min at 6s spacing; avoids hammering Google
 
     private void checkCookie() {
-        if (done || inFlight) return;
+        if (done || inFlight || attempts >= MAX_ATTEMPTS) return;
         String cookies = CookieManager.getInstance().getCookie("https://accounts.google.com");
         if (cookies == null) return;
         String token = null;
@@ -122,12 +124,22 @@ public class GoogleAuthActivity extends Activity {
         lastTried = token;
         lastTryMs = now;
         inFlight = true;
+        attempts++;
         final String t = token;
         new Thread(() -> {
             try {
                 tryExchange(t);
             } finally {
                 inFlight = false;
+                if (!done && attempts >= MAX_ATTEMPTS) {
+                    runOnUiThread(() -> new AlertDialog.Builder(this)
+                            .setTitle("Couldn't finish sign-in")
+                            .setMessage("Sign-in didn't complete. To protect your account the app stopped retrying. "
+                                    + "You can try again, or use the more reliable Option B: import a login file "
+                                    + "made on a PC (see Setup).")
+                            .setPositiveButton("OK", (d, w) -> finish())
+                            .setCancelable(false).show());
+                }
             }
         }).start();
     }

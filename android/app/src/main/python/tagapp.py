@@ -65,6 +65,11 @@ def shared_key_url() -> str:
     return finder.shared_key_url()
 
 
+def import_secrets(path: str) -> str:
+    from server import finder
+    return json.dumps(finder.import_secrets_file(path))
+
+
 def save_vault_keys(vault_keys: str):
     from server import finder
     finder.save_vault_keys(vault_keys)
