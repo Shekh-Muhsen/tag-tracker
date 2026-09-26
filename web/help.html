@@ -80,7 +80,26 @@
     <p class="muted2">• See the full route for Today, 2 days, 7 days, 30 days, a year, or any dates &nbsp; • Replay the trip &nbsp; • Ring the tag when you're near it &nbsp; • Export CSV/GPX for the police &nbsp; • Lock the app with a password &nbsp; • Switch between OpenStreetMap, Google Maps &amp; satellite.</p>
   </div>
 
-  <div class="cta"><button onclick="(window.TagTrackerApp&&TagTrackerApp.doneHelp&&TagTrackerApp.doneHelp())||window.close()">Got it — start setup</button></div>
+  <div class="card">
+    <h2><span class="ic">§</span> Before you start</h2>
+    <p class="muted2"><b>Not affiliated with Google.</b> This is an independent app that uses an <b>unofficial</b>
+    method to read the Find network. Google may block it at any time, and this may violate Google's Terms of
+    Service. It's for tracking <b>your own property</b> — never a person without their consent. Use at your own risk.</p>
+    <label style="display:flex;gap:10px;align-items:flex-start;margin-top:10px;font-size:13px;cursor:pointer">
+      <input type="checkbox" id="agree" style="width:18px;height:18px;margin-top:1px;accent-color:var(--accent)">
+      <span>I will only track <b>my own property</b> (not any person without consent), and I accept the disclaimer and that I use this at my own risk.</span>
+    </label>
+  </div>
+
+  <div class="cta"><button id="start" disabled style="opacity:.5">Agree &amp; start setup</button></div>
 </div>
+<script>
+  var cb = document.getElementById('agree'), b = document.getElementById('start');
+  cb.addEventListener('change', function(){ b.disabled = !cb.checked; b.style.opacity = cb.checked ? '1' : '.5'; });
+  b.addEventListener('click', function(){
+    try { localStorage.setItem('tt_consent', '1'); } catch(e){}
+    if (window.TagTrackerApp && TagTrackerApp.doneHelp) TagTrackerApp.doneHelp(); else window.close();
+  });
+</script>
 </body>
 </html>

@@ -169,6 +169,24 @@ python -m server.manage users
 python -m server.manage poll             # fetch locations once
 ```
 
+## Legal, disclaimer & privacy
+
+**Not affiliated with Google.** Tag Tracker is an independent, open-source project — not created,
+endorsed, or supported by Google LLC. "Google", "Find Hub", "Find My Device" and "Android" are
+trademarks of Google LLC, used nominatively to describe compatibility.
+
+It reads the Find network with the **unofficial** [GoogleFindMyTools](https://github.com/leonboe1/GoogleFindMyTools).
+Google provides no public API and **may block this at any time**; using an unofficial client **may violate
+Google's Terms of Service**. **Use at your own risk**, including risk to your Google account.
+
+**Track only your own property** — never a person without their knowledge and consent (illegal in many
+places). If something is stolen, give the location to the **police**; don't confront anyone.
+
+**Privacy:** your data stays on your phone and, if enabled, your own Google Drive. The app has **no servers
+of its own** and sends **no data to the developer** or any third party.
+
+Provided **"AS IS", without warranty**. See [LEGAL.md](LEGAL.md) for the full text.
+
 ## License
 
-GPL-3.0, the same license as GoogleFindMyTools, which this project uses.
+GPL-3.0, the same license as GoogleFindMyTools, which this project builds on. Full credit to Leon Böttger.

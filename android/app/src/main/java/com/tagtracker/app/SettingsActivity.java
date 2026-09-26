@@ -296,6 +296,14 @@ public class SettingsActivity extends Activity {
             button("Set an app password", v -> showAppLockDialog());
         }
 
+        heading("Legal & privacy");
+        note("Not affiliated with Google. This app uses an UNOFFICIAL method to read the Find network – "
+                + "Google may block it at any time, and it may violate Google's Terms of Service. For tracking "
+                + "YOUR OWN property only, never a person without consent. Your data stays on your phone and your "
+                + "own Google Drive; nothing is sent to the developer. Provided AS IS, no warranty. Open-source "
+                + "(GPL-3.0), built on GoogleFindMyTools.");
+        button("Read full disclaimer & privacy", v -> showLegal());
+
         status = new TextView(this);
         status.setPadding(0, dp(16), 0, 0);
         root.addView(status);
@@ -338,6 +346,39 @@ public class SettingsActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.rightMargin = dp(8);
         r.addView(t, lp);
+    }
+
+    private void showLegal() {
+        String t = "NOT AFFILIATED WITH GOOGLE\n"
+                + "Tag Tracker is an independent, open-source app. It is not created, endorsed or supported by "
+                + "Google. “Google”, “Find Hub” and “Android” are trademarks of Google LLC.\n\n"
+                + "UNOFFICIAL METHOD / YOUR RISK\n"
+                + "It reads the Find network using the open-source GoogleFindMyTools, an unofficial method. Google "
+                + "provides no public API and may change or block this at any time. Using an unofficial client may "
+                + "violate Google's Terms of Service. You use this app at your own risk, including risk to your "
+                + "Google account.\n\n"
+                + "ACCEPTABLE USE\n"
+                + "Track only trackers you own or are authorised to track. Do NOT use it to locate or monitor any "
+                + "person without their knowledge and consent – that is illegal in many places. If something is "
+                + "stolen, give the location to the police; do not confront anyone.\n\n"
+                + "PRIVACY\n"
+                + "Your history stays on your phone and, if enabled, in your own Google Drive. The app has no servers "
+                + "of its own and sends no data to the developer or any third party. Your Google tokens stay on your "
+                + "device.\n\n"
+                + "NO WARRANTY\n"
+                + "Provided “AS IS”, without warranty of any kind. The authors are not liable for any damages, "
+                + "data loss, account issues, or missed/incorrect locations.\n\n"
+                + "LICENSE\n"
+                + "GNU GPL v3.0. Built on GoogleFindMyTools by Leon Böttger (GPL-3.0).";
+        TextView tv = new TextView(this);
+        tv.setText(t);
+        tv.setTextSize(13);
+        int pad = dp(20);
+        tv.setPadding(pad, pad, pad, pad);
+        ScrollView sc = new ScrollView(this);
+        sc.addView(tv);
+        new AlertDialog.Builder(this).setTitle("Legal, disclaimer & privacy")
+                .setView(sc).setPositiveButton("Close", null).show();
     }
 
     private void showAppLockDialog() {
