@@ -32,7 +32,7 @@ import java.net.URL;
 public class UpdateChecker {
     private static final String LATEST_API =
             "https://api.github.com/repos/Shekh-Muhsen/tag-tracker/releases/latest";
-    private static final String ASSET_NAME = "TagTracker.apk";
+    private static final String LEGACY_ASSET_NAME = "TagTracker.apk";
 
     /** @param userInitiated true when the user tapped "Check for updates" (so we also report
      *                        "you're up to date"); false for a quiet background check. */
@@ -77,13 +77,21 @@ public class UpdateChecker {
     private static String findApkUrl(JSONObject rel) {
         JSONArray assets = rel.optJSONArray("assets");
         if (assets == null) return null;
+        String tag = rel.optString("tag_name", "").trim();
+        if (tag.isEmpty()) return null;
+        if (!tag.startsWith("v") && !tag.startsWith("V")) tag = "v" + tag;
+        String expectedName = "TagTracker-" + tag + ".apk";
+        String legacyUrl = null;
         for (int i = 0; i < assets.length(); i++) {
-            JSONObject a = assets.optJSONObject(i);
-            if (a != null && ASSET_NAME.equals(a.optString("name"))) {
-                return a.optString("browser_download_url", null);
-            }
+            JSONObject asset = assets.optJSONObject(i);
+            if (asset == null) continue;
+            String url = asset.optString("browser_download_url", "");
+            if (url.isEmpty()) continue;
+            String name = asset.optString("name", "");
+            if (expectedName.equals(name)) return url;
+            if (LEGACY_ASSET_NAME.equals(name)) legacyUrl = url;
         }
-        return null;
+        return legacyUrl;
     }
 
     private static void promptUpdate(Activity activity, String tag, String apkUrl, String notes) {
