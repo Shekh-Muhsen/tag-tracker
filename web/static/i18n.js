@@ -113,7 +113,8 @@
     "help_before": "Before you start",
     "help_disclaimer": "<b>Not affiliated with Google.</b> This is an independent app that uses an <b>unofficial</b> method to read the Find network. Google may block it at any time, and this may violate Google's Terms of Service. It's for tracking <b>your own property</b> — never a person without their consent. Use at your own risk.",
     "help_agree": "I will only track <b>my own property</b> (not any person without consent), and I accept the disclaimer and that I use this at my own risk.",
-    "help_start": "Agree & start setup"
+    "help_start": "Agree & start setup",
+    "free_alert": "Free: 1 tag, last 24h. For 2+ tags and unlimited-day history, contact the developer for a key ({email})."
   },
   "pt-BR": {
     "language": "Idioma",
@@ -226,7 +227,8 @@
     "help_before": "Antes de começar",
     "help_disclaimer": "<b>Não afiliado ao Google.</b> Este aplicativo independente usa um método <b>não oficial</b> para consultar a rede Find. O Google pode bloqueá-lo e seu uso pode violar os Termos de Serviço. Rastreie apenas <b>seus próprios bens</b>, nunca pessoas sem consentimento. Use por sua conta e risco.",
     "help_agree": "Rastrearei somente <b>meus próprios bens</b> (não pessoas sem consentimento) e aceito os avisos e riscos apresentados.",
-    "help_start": "Aceitar e iniciar configuração"
+    "help_start": "Aceitar e iniciar configuração",
+    "free_alert": "Grátis: 1 tag e últimas 24 horas. Para mais tags e histórico ilimitado, entre em contato com o desenvolvedor para solicitar uma chave ({email})."
   }
 };
   const KEY = 'tt_language';
