@@ -60,7 +60,13 @@
       <div class="muted small" id="scrubLabel">&nbsp;</div>
     </div>
 
-    <label class="check"><input type="checkbox" id="showPoints" checked> Show individual points</label>
+    <fieldset class="map-filters">
+      <legend>Map visibility</legend>
+      <label class="check"><input type="checkbox" id="showTrack" checked> 🧭 Show route track</label>
+      <label class="check"><input type="checkbox" id="showPoints" checked> 📍 Show individual points</label>
+      <label class="check"><input type="checkbox" id="showDevicePoints" checked> 📱 Points from your own phone</label>
+      <label class="check"><input type="checkbox" id="showNetworkPoints" checked> 🌐 Points from the Find Hub network</label>
+    </fieldset>
     <label class="check"><input type="checkbox" id="autoRefresh" checked> Auto-refresh every minute</label>
 
     <div class="row">
