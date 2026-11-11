@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>How Tag Tracker works</title>
+<title data-i18n="help_title">How Tag Tracker works</title>
 <link rel="stylesheet" href="static/style.css">
 <style>
   body { background: var(--bg); }
@@ -42,57 +42,59 @@
   <div class="hero">
     <div class="logo"><svg viewBox="0 0 108 108"><path d="M54 20c-14 0-24 10-24 24 0 17 24 44 24 44s24-27 24-44c0-14-10-24-24-24z" fill="#fff"/><circle cx="54" cy="44" r="9" fill="#2563eb"/></svg></div>
     <h1>Tag Tracker</h1>
-    <p>Your tag's full travel history &amp; anti-theft alerts</p>
+    <label><span data-i18n="language">Language</span> <select id="tt-language" aria-label="Language"><option value="en">English</option><option value="pt-BR">Português (Brasil)</option></select></label>
+    <p data-i18n="help_subtitle">Your tag's full travel history &amp; anti-theft alerts</p>
   </div>
 
   <div class="card">
-    <h2><span class="ic">?</span> Why this app exists</h2>
+    <h2><span class="ic">?</span> <span data-i18n="help_why">Why this app exists</span></h2>
     <div class="vs">
-      <div class="bad"><h3>Google Find Hub</h3><p class="muted2">Shows only the <b>last</b> location. No history — you can't see where your tag has been.</p></div>
-      <div class="good"><h3>Tag Tracker</h3><p class="muted2">Saves <b>every</b> location over time: full route, day→year history, replay, and theft alerts.</p></div>
+      <div class="bad"><h3>Google Find Hub</h3><p class="muted2" data-i18n-html="help_hub">Shows only the <b>last</b> location. No history — you can't see where your tag has been.</p></div>
+      <div class="good"><h3>Tag Tracker</h3><p class="muted2" data-i18n-html="help_tracker">Saves <b>every</b> location over time: full route, day→year history, replay, and theft alerts.</p></div>
     </div>
   </div>
 
   <div class="card">
-    <h2><span class="ic">↻</span> How a location reaches your phone</h2>
+    <h2><span class="ic">↻</span> <span data-i18n="help_how">How a location reaches your phone</span></h2>
     <ul class="flow">
-      <li><span class="n">1</span><div>Your tag broadcasts a tiny encrypted Bluetooth signal every 1–2 seconds.</div></li>
-      <li><span class="n">2</span><div>Any Android phone passing nearby (~10–30 m) detects it and uploads the encrypted position to Google — silently and anonymously.</div></li>
-      <li><span class="n">3</span><div>Your phone asks Google for it over the internet, and <b>only your phone</b> can decrypt it (that's the Unlock step).</div></li>
-      <li><span class="n">4</span><div>It's drawn on your map, saved to history, and synced to Google Drive.</div></li>
+      <li><span class="n">1</span><div data-i18n="help_step1">Your tag broadcasts a tiny encrypted Bluetooth signal every 1–2 seconds.</div></li>
+      <li><span class="n">2</span><div data-i18n="help_step2">Any Android phone passing nearby (~10–30 m) detects it and uploads the encrypted position to Google — silently and anonymously.</div></li>
+      <li><span class="n">3</span><div data-i18n-html="help_step3">Your phone asks Google for it over the internet, and <b>only your phone</b> can decrypt it (that's the Unlock step).</div></li>
+      <li><span class="n">4</span><div data-i18n="help_step4">It's drawn on your map, saved to history, and synced to Google Drive.</div></li>
     </ul>
-    <p class="muted2">Updates come whenever a phone passes the tag — often in busy areas, rarely in empty ones. Your phone receives over the internet, so the tag can be anywhere.</p>
+    <p class="muted2" data-i18n="help_frequency">Updates come whenever a phone passes the tag — often in busy areas, rarely in empty ones. Your phone receives over the internet, so the tag can be anywhere.</p>
   </div>
 
   <div class="card">
-    <h2><span class="ic">⚑</span> First-time setup</h2>
+    <h2><span class="ic">⚑</span> <span data-i18n="help_setup">First-time setup</span></h2>
     <ol class="steps">
-      <li><b>Sign in to Google</b><span class="muted2">Use the account your tag is on. This lists your tags.</span></li>
-      <li><b>Unlock encryption</b> <span class="pill">required</span><span class="muted2">Enter your phone's screen lock on Google's page — this lets your phone decrypt locations. Without it the map stays empty.</span></li>
-      <li><b>Turn on background checking</b><span class="muted2">The app checks every 15 min and saves each location, using almost no battery.</span></li>
-      <li><b>Sync to Google Drive</b> <span class="pill">recommended</span><span class="muted2">Default mode auto-saves to your Drive, so a new phone gets your history back automatically.</span></li>
-      <li><b>Park &amp; guard</b><span class="muted2">Tap Park when you leave the bike — you'll get a loud alert if it moves.</span></li>
+      <li><b data-i18n="help_signin">Sign in to Google</b><span class="muted2" data-i18n="help_signin_desc">Use the account your tag is on. This lists your tags.</span></li>
+      <li><b data-i18n="help_unlock">Unlock encryption</b> <span class="pill" data-i18n="help_required">required</span><span class="muted2" data-i18n="help_unlock_desc">Enter your phone's screen lock on Google's page — this lets your phone decrypt locations. Without it the map stays empty.</span></li>
+      <li><b data-i18n="help_background">Turn on background checking</b><span class="muted2" data-i18n="help_background_desc">The app checks every 15 min and saves each location, using almost no battery.</span></li>
+      <li><b data-i18n="help_drive">Sync to Google Drive</b> <span class="pill" data-i18n="help_recommended">recommended</span><span class="muted2" data-i18n="help_drive_desc">Default mode auto-saves to your Drive, so a new phone gets your history back automatically.</span></li>
+      <li><b data-i18n="help_guard">Park &amp; guard</b><span class="muted2" data-i18n="help_guard_desc">Tap Park when you leave the bike — you'll get a loud alert if it moves.</span></li>
     </ol>
   </div>
 
   <div class="card">
-    <h2><span class="ic">★</span> What you can do</h2>
-    <p class="muted2">• See the full route for Today, 2 days, 7 days, 30 days, a year, or any dates &nbsp; • Replay the trip &nbsp; • Ring the tag when you're near it &nbsp; • Export CSV/GPX for the police &nbsp; • Lock the app with a password &nbsp; • Switch between OpenStreetMap, Google Maps &amp; satellite.</p>
+    <h2><span class="ic">★</span> <span data-i18n="help_features">What you can do</span></h2>
+    <p class="muted2" data-i18n-html="help_features_desc">• See the full route for Today, 2 days, 7 days, 30 days, a year, or any dates &nbsp; • Replay the trip &nbsp; • Ring the tag when you're near it &nbsp; • Export CSV/GPX for the police &nbsp; • Lock the app with a password &nbsp; • Switch between OpenStreetMap, Google Maps &amp; satellite.</p>
   </div>
 
   <div class="card">
-    <h2><span class="ic">§</span> Before you start</h2>
-    <p class="muted2"><b>Not affiliated with Google.</b> This is an independent app that uses an <b>unofficial</b>
+    <h2><span class="ic">§</span> <span data-i18n="help_before">Before you start</span></h2>
+    <p class="muted2" data-i18n-html="help_disclaimer"><b>Not affiliated with Google.</b> This is an independent app that uses an <b>unofficial</b>
     method to read the Find network. Google may block it at any time, and this may violate Google's Terms of
     Service. It's for tracking <b>your own property</b> — never a person without their consent. Use at your own risk.</p>
     <label style="display:flex;gap:10px;align-items:flex-start;margin-top:10px;font-size:13px;cursor:pointer">
       <input type="checkbox" id="agree" style="width:18px;height:18px;margin-top:1px;accent-color:var(--accent)">
-      <span>I will only track <b>my own property</b> (not any person without consent), and I accept the disclaimer and that I use this at my own risk.</span>
+      <span data-i18n-html="help_agree">I will only track <b>my own property</b> (not any person without consent), and I accept the disclaimer and that I use this at my own risk.</span>
     </label>
   </div>
 
-  <div class="cta"><button id="start" disabled style="opacity:.5">Agree &amp; start setup</button></div>
+  <div class="cta"><button id="start" disabled style="opacity:.5" data-i18n="help_start">Agree &amp; start setup</button></div>
 </div>
+<script src="static/i18n.js"></script>
 <script>
   var cb = document.getElementById('agree'), b = document.getElementById('start');
   cb.addEventListener('change', function(){ b.disabled = !cb.checked; b.style.opacity = cb.checked ? '1' : '.5'; });
