@@ -212,9 +212,12 @@
     points = res.points.filter((p) => p.lat != null);
     const color = devices.find((d) => d.id === deviceId)?.color || '#2563eb';
     const lls = points.map((p) => [p.lat, p.lon]);
-    if (lls.length > 1) L.polyline(lls, { color, weight: 3, opacity: 0.75 }).addTo(layers.track);
+    if (lls.length > 1 && $('showTrack').checked) L.polyline(lls, { color, weight: 3, opacity: 0.75 }).addTo(layers.track);
     if ($('showPoints').checked) {
       points.forEach((p, i) => {
+        const isOwnReport = Number(p.is_own_report) === 1;
+        if (isOwnReport && !$('showDevicePoints').checked) return;
+        if (!isOwnReport && !$('showNetworkPoints').checked) return;
         L.circleMarker([p.lat, p.lon], { radius: 4, color, weight: 1, fillColor: i === 0 ? '#16a34a' : '#fff', fillOpacity: 1 })
           .bindPopup(`<div class="popup"><b>${fmt(p.ts)}</b>${p.accuracy ? `± ${Math.round(p.accuracy)} m<br>` : ''}`
             + `${p.is_own_report ? 'Reported by your own phone' : 'Reported by Find Hub network'}<br>`
@@ -302,7 +305,17 @@
     deviceId = e.target.value; store.set('device', deviceId); fitted = false;
     renderLatest(); loadHistory().catch(alert);
   });
-  $('showPoints').addEventListener('change', () => loadHistory().catch(alert));
+  // Keep all four map layers enabled by default (same appearance as before).
+  // Preferences affect the map display only, never the saved history or exports.
+  ['showTrack', 'showPoints', 'showDevicePoints', 'showNetworkPoints'].forEach((id) => {
+    const el = $(id);
+    const saved = store.get('map_filter_' + id);
+    if (saved !== null) el.checked = saved === '1';
+    el.addEventListener('change', () => {
+      store.set('map_filter_' + id, el.checked ? '1' : '0');
+      loadHistory().catch(alert);
+    });
+  });
   $('toggle').addEventListener('click', () => $('panel').classList.toggle('collapsed'));
   $('pollNow').addEventListener('click', async () => {
     try { await data.pollNow(); $('pollStatus').textContent = 'Checking Google for new locations…'; setTimeout(refresh, 15000); }
