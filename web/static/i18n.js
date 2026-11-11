@@ -83,7 +83,37 @@
     "last_seen_short": "last seen",
     "copied": "Location copied to clipboard",
     "copy": "Copy:",
-    "new_name": "New name for this tag"
+    "new_name": "New name for this tag",
+    "help_title": "How Tag Tracker works",
+    "help_subtitle": "Your tag's full travel history & anti-theft alerts",
+    "help_why": "Why this app exists",
+    "help_hub": "Shows only the <b>last</b> location. No history — you can't see where your tag has been.",
+    "help_tracker": "Saves <b>every</b> location over time: full route, day→year history, replay, and theft alerts.",
+    "help_how": "How a location reaches your phone",
+    "help_step1": "Your tag broadcasts a tiny encrypted Bluetooth signal every 1–2 seconds.",
+    "help_step2": "Any Android phone passing nearby (~10–30 m) detects it and uploads the encrypted position to Google — silently and anonymously.",
+    "help_step3": "Your phone asks Google for it over the internet, and <b>only your phone</b> can decrypt it (that's the Unlock step).",
+    "help_step4": "It's drawn on your map, saved to history, and synced to Google Drive.",
+    "help_frequency": "Updates come whenever a phone passes the tag — often in busy areas, rarely in empty ones. Your phone receives over the internet, so the tag can be anywhere.",
+    "help_setup": "First-time setup",
+    "help_signin": "Sign in to Google",
+    "help_signin_desc": "Use the account your tag is on. This lists your tags.",
+    "help_unlock": "Unlock encryption",
+    "help_required": "required",
+    "help_unlock_desc": "Enter your phone's screen lock on Google's page — this lets your phone decrypt locations. Without it the map stays empty.",
+    "help_background": "Turn on background checking",
+    "help_background_desc": "The app checks every 15 min and saves each location, using almost no battery.",
+    "help_drive": "Sync to Google Drive",
+    "help_recommended": "recommended",
+    "help_drive_desc": "Default mode auto-saves to your Drive, so a new phone gets your history back automatically.",
+    "help_guard": "Park & guard",
+    "help_guard_desc": "Tap Park when you leave the bike — you'll get a loud alert if it moves.",
+    "help_features": "What you can do",
+    "help_features_desc": "• See the full route for Today, 2 days, 7 days, 30 days, a year, or any dates &nbsp; • Replay the trip &nbsp; • Ring the tag when you're near it &nbsp; • Export CSV/GPX for the police &nbsp; • Lock the app with a password &nbsp; • Switch between OpenStreetMap, Google Maps &amp; satellite.",
+    "help_before": "Before you start",
+    "help_disclaimer": "<b>Not affiliated with Google.</b> This is an independent app that uses an <b>unofficial</b> method to read the Find network. Google may block it at any time, and this may violate Google's Terms of Service. It's for tracking <b>your own property</b> — never a person without their consent. Use at your own risk.",
+    "help_agree": "I will only track <b>my own property</b> (not any person without consent), and I accept the disclaimer and that I use this at my own risk.",
+    "help_start": "Agree & start setup"
   },
   "pt-BR": {
     "language": "Idioma",
@@ -166,7 +196,37 @@
     "last_seen_short": "vista pela última vez",
     "copied": "Localização copiada",
     "copy": "Copiar:",
-    "new_name": "Novo nome para esta tag"
+    "new_name": "Novo nome para esta tag",
+    "help_title": "Como funciona o Tag Tracker",
+    "help_subtitle": "Histórico completo da tag e alertas antifurto",
+    "help_why": "Por que este aplicativo existe",
+    "help_hub": "Mostra apenas a <b>última</b> localização. Sem histórico, você não sabe por onde a tag passou.",
+    "help_tracker": "Salva <b>todas</b> as localizações: trajeto completo, histórico de dias a um ano, reprodução e alertas antifurto.",
+    "help_how": "Como a localização chega ao celular",
+    "help_step1": "Sua tag transmite um pequeno sinal Bluetooth criptografado a cada 1–2 segundos.",
+    "help_step2": "Celulares Android próximos (~10–30 m) detectam o sinal e enviam a posição criptografada ao Google, de forma silenciosa e anônima.",
+    "help_step3": "Seu celular consulta o Google pela internet e <b>somente ele</b> pode descriptografar a localização (após o desbloqueio).",
+    "help_step4": "Ela aparece no mapa, é salva no histórico e sincronizada com o Google Drive.",
+    "help_frequency": "As atualizações chegam quando um celular passa perto da tag — mais frequentemente em locais movimentados. Seu celular recebe os dados pela internet.",
+    "help_setup": "Configuração inicial",
+    "help_signin": "Entrar no Google",
+    "help_signin_desc": "Use a conta que possui suas tags para listá-las.",
+    "help_unlock": "Desbloquear a criptografia",
+    "help_required": "obrigatório",
+    "help_unlock_desc": "Informe o bloqueio de tela na página do Google para permitir a descriptografia. Sem isso, o mapa fica vazio.",
+    "help_background": "Ativar verificações em segundo plano",
+    "help_background_desc": "O app verifica as localizações a cada 15 minutos, economizando bateria.",
+    "help_drive": "Sincronizar com Google Drive",
+    "help_recommended": "recomendado",
+    "help_drive_desc": "Por padrão, o histórico é salvo automaticamente no Drive e pode ser restaurado em outro celular.",
+    "help_guard": "Estacionar e proteger",
+    "help_guard_desc": "Toque em Estacionar quando deixar a bicicleta: você será alertado se ela se mover.",
+    "help_features": "O que você pode fazer",
+    "help_features_desc": "• Consultar trajetos por período &nbsp; • Reproduzir o percurso &nbsp; • Tocar a tag quando estiver perto &nbsp; • Exportar CSV/GPX &nbsp; • Proteger o app com senha &nbsp; • Alternar entre mapas e satélite.",
+    "help_before": "Antes de começar",
+    "help_disclaimer": "<b>Não afiliado ao Google.</b> Este aplicativo independente usa um método <b>não oficial</b> para consultar a rede Find. O Google pode bloqueá-lo e seu uso pode violar os Termos de Serviço. Rastreie apenas <b>seus próprios bens</b>, nunca pessoas sem consentimento. Use por sua conta e risco.",
+    "help_agree": "Rastrearei somente <b>meus próprios bens</b> (não pessoas sem consentimento) e aceito os avisos e riscos apresentados.",
+    "help_start": "Aceitar e iniciar configuração"
   }
 };
   const KEY = 'tt_language';
@@ -183,6 +243,8 @@
   function apply(root = document) {
     document.documentElement.lang = language;
     root.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.getAttribute('data-i18n')); });
+    // Only static translations owned by this repository may contain HTML markup.
+    root.querySelectorAll('[data-i18n-html]').forEach((el) => { el.innerHTML = t(el.getAttribute('data-i18n-html')); });
     root.querySelectorAll('[data-i18n-title]').forEach((el) => { el.title = t(el.getAttribute('data-i18n-title')); });
     root.querySelectorAll('#tt-language').forEach((el) => { el.value = language; });
   }
