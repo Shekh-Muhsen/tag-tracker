@@ -1,5 +1,7 @@
 (() => {
   const $ = (id) => document.getElementById(id);
+  const t = (key, vars) => window.TT_I18N.t(key, vars);
+  const locale = () => window.TT_I18N.language === 'pt-BR' ? 'pt-BR' : 'en-US';
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch {} },
@@ -31,7 +33,7 @@
     options: { position: 'topright' },
     onAdd() {
       const b = L.DomUtil.create('button', 'leaflet-bar recenter-btn');
-      b.innerHTML = '◎'; b.title = 'Center on tag';
+      b.innerHTML = '◎'; b.title = t('recenter');
       L.DomEvent.on(b, 'click', (ev) => {
         L.DomEvent.stop(ev);
         const d = devices.find((x) => x.id === deviceId);
@@ -70,13 +72,13 @@
           method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }),
   };
 
-  const fmt = (ts) => new Date(ts * 1000).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  const fmt = (ts) => new Date(ts * 1000).toLocaleString(locale(), { dateStyle: 'medium', timeStyle: 'short' });
   function ago(ts) {
     const s = Date.now() / 1000 - ts;
-    if (s < 90) return 'just now';
-    if (s < 3600) return `${Math.round(s / 60)} min ago`;
-    if (s < 86400) return `${Math.round(s / 3600)} h ago`;
-    return `${Math.round(s / 86400)} days ago`;
+    if (s < 90) return t('just_now');
+    if (s < 3600) return t('mins_ago', { n: Math.round(s / 60) });
+    if (s < 86400) return t('hours_ago', { n: Math.round(s / 3600) });
+    return t('days_ago', { n: Math.round(s / 86400) });
   }
   function km(a, b) {
     const R = 6371, r = Math.PI / 180;
@@ -113,15 +115,15 @@
     devices = res.devices;
     const sel = $('device');
     sel.innerHTML = devices.length ? devices.map((d) => `<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('')
-      : '<option value="">No tags yet – waiting for first check</option>';
+      : '<option value="">' + t('no_tags') + '</option>';
     if (!devices.find((d) => d.id === deviceId)) deviceId = devices[0]?.id || null;
     if (deviceId) sel.value = deviceId;
     renderLatest();
     const p = res.poller;
-    $('pollStatus').textContent = !p.enabled ? 'Automatic checking is off on this server.'
-      : p.running ? 'Checking Google for new locations…'
-      : p.last_error ? `Last check failed: ${p.last_error}`
-      : p.last_run ? `Last checked ${ago(p.last_run)} · every ${p.interval_minutes} min` : 'Starting…';
+    $('pollStatus').textContent = !p.enabled ? t('poll_off')
+      : p.running ? t('poll_check')
+      : p.last_error ? t('poll_fail', { error: p.last_error })
+      : p.last_run ? t('poll_last', { when: ago(p.last_run), minutes: p.interval_minutes }) : t('starting');
     renderSync(res.backup);
     renderPark(res.guard);
     renderLicense(res.license);
@@ -138,7 +140,7 @@
     const el = $('pro');
     if (!el) return;
     el.hidden = licensed;
-    if (!licensed) { el.textContent = '🔒 Free — Upgrade'; el.onclick = openLicense; }
+    if (!licensed) { el.textContent = t('free_upgrade'); el.onclick = openLicense; }
     // lock history ranges beyond the free window
     document.querySelectorAll('#ranges button').forEach((b) => {
       const free = b.dataset.h === 'today' || b.dataset.h === '24';
@@ -153,24 +155,24 @@
     if (!el) return;
     el.classList.toggle('armed', parked);
     el.classList.toggle('riding', !parked);
-    el.textContent = parked ? '🔒 Parked & guarded — tap when you ride' : '🅿️ Park & guard';
+    el.textContent = parked ? t('parked') : t('park');
   }
   function renderSync(b) {
     const el = $('sync');
     if (!el) return;
     el.classList.remove('ok', 'busy', 'err', 'off');
     if (!b || !b.enabled) {
-      el.classList.add('off'); el.textContent = 'Drive off';
-      el.title = 'Google Drive sync is off. Turn it on in setup.';
+      el.classList.add('off'); el.textContent = t('drive_off');
+      el.title = t('drive_off_tip');
     } else if (b.last_error) {
-      el.classList.add('busy'); el.textContent = 'Saved · sync pending';
-      el.title = 'Your locations ARE saved on the phone. Drive sync will retry automatically. (' + b.last_error + ')';
+      el.classList.add('busy'); el.textContent = t('sync_pending');
+      el.title = t('sync_pending_tip', { error: b.last_error });
     } else if (b.last_run) {
-      el.classList.add('ok'); el.textContent = 'Synced';
-      el.title = `Backed up to Google Drive ${ago(b.last_run)}` + (b.mode ? ` (${b.mode})` : '');
+      el.classList.add('ok'); el.textContent = t('synced');
+      el.title = t('backup_when', { when: ago(b.last_run) }) + (b.mode ? ` (${b.mode})` : '');
     } else {
-      el.classList.add('off'); el.textContent = 'Drive ready';
-      el.title = 'Google Drive is set up. It uploads once there are locations to back up.';
+      el.classList.add('off'); el.textContent = t('drive_ready');
+      el.title = t('drive_ready_tip');
     }
   }
 
@@ -178,27 +180,27 @@
     const d = devices.find((x) => x.id === deviceId);
     const el = $('latest');
     layers.live.clearLayers();
-    if (!d) { el.innerHTML = '<span class="muted">No tag selected.</span>'; return; }
+    if (!d) { el.innerHTML = '<span class="muted">' + t('no_tag') + '</span>'; return; }
     if (d.last_ts == null) {
-      el.innerHTML = `<b>${esc(d.name)}</b><br><span class="muted">No locations stored yet.</span>`
+      el.innerHTML = `<b>${esc(d.name)}</b><br><span class="muted">${t('no_locations')}</span>`
         + (d.last_error ? `<br><span class="error">${esc(d.last_error)}</span>` : '');
       return;
     }
-    el.innerHTML = `<b>${esc(d.name)}</b><br>Last seen at ${fmt(d.last_ts)} <span class="muted">(${ago(d.last_ts)})</span><br>`
-      + `<span id="addr" class="muted">📍 finding address…</span><br>`
-      + `<span class="muted">${d.point_count.toLocaleString()} locations stored in total</span>`
+    el.innerHTML = `<b>${esc(d.name)}</b><br>${t('last_seen', { when: fmt(d.last_ts) })} <span class="muted">(${ago(d.last_ts)})</span><br>`
+      + `<span id="addr" class="muted">${t("finding_address")}</span><br>`
+      + `<span class="muted">${t("locations_total", { n: d.point_count.toLocaleString(locale()) })}</span>`
       + (d.last_error ? `<br><span class="error small">${esc(d.last_error)}</span>` : '');
     el.innerHTML += `<br><a id="dir" target="_blank" rel="noopener" class="dirlink"`
-      + ` href="https://www.google.com/maps/dir/?api=1&destination=${d.last_lat},${d.last_lon}">🧭 Get directions</a>`;
+      + ` href="https://www.google.com/maps/dir/?api=1&destination=${d.last_lat},${d.last_lon}">${t('directions')}</a>`;
     addressFor(d.last_lat, d.last_lon).then((a) => {
       const ae = $('addr'); if (ae) ae.textContent = a ? '📍 ' + a : `📍 ${d.last_lat.toFixed(5)}, ${d.last_lon.toFixed(5)}`;
     });
     const ll = [d.last_lat, d.last_lon];
     if (d.last_accuracy) L.circle(ll, { radius: d.last_accuracy, color: d.color, weight: 1, fillOpacity: 0.12 }).addTo(layers.live);
     L.circleMarker(ll, { radius: 9, color: '#fff', weight: 3, fillColor: d.color, fillOpacity: 1 })
-      .bindPopup(`<div class="popup"><b>${esc(d.name)} – latest</b>${fmt(d.last_ts)}<br>`
-        + `<a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${d.last_lat},${d.last_lon}">Open in Maps</a>`
-        + ` · <a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${d.last_lat},${d.last_lon}">Directions</a></div>`)
+      .bindPopup(`<div class="popup"><b>${esc(d.name)} – ${t('latest')}</b>${fmt(d.last_ts)}<br>`
+        + `<a target="_blank" rel="noopener" href="https://www.google.com/maps?q=${d.last_lat},${d.last_lon}">${t('open_maps')}</a>`
+        + ` · <a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${d.last_lat},${d.last_lon}">${t('route')}</a></div>`)
       .addTo(layers.live);
   }
 
@@ -217,7 +219,7 @@
       points.forEach((p, i) => {
         L.circleMarker([p.lat, p.lon], { radius: 4, color, weight: 1, fillColor: i === 0 ? '#16a34a' : '#fff', fillOpacity: 1 })
           .bindPopup(`<div class="popup"><b>${fmt(p.ts)}</b>${p.accuracy ? `± ${Math.round(p.accuracy)} m<br>` : ''}`
-            + `${p.is_own_report ? 'Reported by your own phone' : 'Reported by Find Hub network'}<br>`
+            + `${p.is_own_report ? t('own_report') : t('network_report')}<br>`
             + `<span class="muted">${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}</span></div>`)
           .addTo(layers.points);
       });
@@ -241,9 +243,9 @@
     const span = points.length ? points[points.length - 1].ts - points[0].ts : 0;
     const days = span / 86400;
     $('stats').innerHTML = [
-      [points.length.toLocaleString(), 'locations'],
-      [dist < 10 ? dist.toFixed(2) : Math.round(dist).toLocaleString(), 'km travelled'],
-      [days >= 1 ? `${days.toFixed(days < 10 ? 1 : 0)} d` : `${Math.round(span / 3600)} h`, 'time span'],
+      [points.length.toLocaleString(locale()), t('locations')],
+      [dist < 10 ? dist.toLocaleString(locale(), { maximumFractionDigits: 2, minimumFractionDigits: 2 }) : Math.round(dist).toLocaleString(locale()), t('distance')],
+      [days >= 1 ? `${days.toFixed(days < 10 ? 1 : 0)} d` : `${Math.round(span / 3600)} h`, t('period')],
     ].map(([v, k]) => `<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('');
   }
 
@@ -292,7 +294,7 @@
   });
   $('applyCustom').addEventListener('click', () => {
     const s = new Date($('from').value), en = new Date($('to').value);
-    if (isNaN(s) || isNaN(en) || s >= en) return alert('Pick a valid date range.');
+    if (isNaN(s) || isNaN(en) || s >= en) return alert(t('bad_dates'));
     range = { h: 'custom', start: Math.floor(s / 1000), end: Math.floor(en / 1000) };
     fitted = false; loadHistory().catch(alert);
   });
@@ -305,7 +307,7 @@
   $('showPoints').addEventListener('change', () => loadHistory().catch(alert));
   $('toggle').addEventListener('click', () => $('panel').classList.toggle('collapsed'));
   $('pollNow').addEventListener('click', async () => {
-    try { await data.pollNow(); $('pollStatus').textContent = 'Checking Google for new locations…'; setTimeout(refresh, 15000); }
+    try { await data.pollNow(); $('pollStatus').textContent = t('poll_check'); setTimeout(refresh, 15000); }
     catch (e) { alert(e.message); }
   });
   const download = (f) => {
@@ -321,9 +323,9 @@
   async function locateNow() {
     if (!deviceId) return;
     const btn = $('locate');
-    btn.disabled = true; btn.textContent = '📍 Locating…';
-    $('pollStatus').textContent = 'Asking the tag for its current location…';
-    const done = () => { btn.disabled = false; btn.textContent = '📍 Locate now'; };
+    btn.disabled = true; btn.textContent = t('locating');
+    $('pollStatus').textContent = t('asking');
+    const done = () => { btn.disabled = false; btn.textContent = t('locate'); };
     try {
       await data.locate(deviceId);
     } catch (e) { $('pollStatus').textContent = e.message; done(); return; }
@@ -341,29 +343,29 @@
     renderPark(next); // optimistic
     try { await data.setParked(next); } catch (e) { alert(e.message); }
     $('pollStatus').textContent = next
-      ? 'Guarding: you’ll be alerted if the tag moves.'
-      : 'Riding mode: movement alerts are off.';
+      ? t('guarding')
+      : t('riding');
     refresh();
   });
   $('locate').addEventListener('click', locateNow);
   $('ring').addEventListener('click', async () => {
     if (!deviceId) return;
-    try { await data.sound(deviceId); $('pollStatus').textContent = 'Ringing the tag…'; }
+    try { await data.sound(deviceId); $('pollStatus').textContent = t('ringing'); }
     catch (e) { alert(e.message); }
   });
   $('share').addEventListener('click', async () => {
     const d = devices.find((x) => x.id === deviceId);
-    if (!d || d.last_lat == null) { alert('No location yet to share.'); return; }
+    if (!d || d.last_lat == null) { alert(t('no_share')); return; }
     const addr = await addressFor(d.last_lat, d.last_lon);
-    const text = `${d.name} — last seen ${fmt(d.last_ts)}\n${addr ? addr + '\n' : ''}`
+    const text = `${d.name} — ${t('last_seen_short')} ${fmt(d.last_ts)}\n${addr ? addr + '\n' : ''}`
       + `https://www.google.com/maps?q=${d.last_lat},${d.last_lon}`;
     if (NATIVE && NATIVE.share) NATIVE.share(text);
     else if (navigator.share) { try { await navigator.share({ title: d.name, text }); } catch (e) {} }
-    else { try { await navigator.clipboard.writeText(text); alert('Location copied to clipboard'); } catch (e) { prompt('Copy:', text); } }
+    else { try { await navigator.clipboard.writeText(text); alert(t('copied')); } catch (e) { prompt(t('copy'), text); } }
   });
   $('rename').addEventListener('click', async () => {
     const d = devices.find((x) => x.id === deviceId); if (!d) return;
-    const name = prompt('New name for this tag', d.name); if (!name) return;
+    const name = prompt(t('new_name'), d.name); if (!name) return;
     await data.rename(d.id, name);
     refresh();
   });
@@ -373,7 +375,7 @@
   }
   if (NATIVE) {
     // In the standalone app there is no login; "Sign out" becomes "Settings".
-    $('logout').textContent = 'Settings';
+    $('logout').textContent = t('settings');
     $('logout').addEventListener('click', () => NATIVE.openSettings());
   } else {
     $('logout').addEventListener('click', async () => { await api('/api/logout', { method: 'POST' }); location.href = '/login'; });
@@ -383,6 +385,12 @@
     try { await loadDevices(); if (!playTimer) await loadHistory(); } catch (e) { console.error(e); }
   }
   setInterval(() => { if ($('autoRefresh').checked && !document.hidden) refresh(); }, 60000);
+
+  window.addEventListener('tt-language-change', () => {
+    if (NATIVE) $('logout').textContent = t('settings');
+    refresh();
+    renderStats();
+  });
 
   if (range.h === 'custom') range.h = '168';
   markRange();
