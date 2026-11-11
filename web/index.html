@@ -15,69 +15,73 @@
 <aside id="panel">
   <div class="panel-head">
     <div class="brand"><span class="dot"></span> Tag Tracker</div>
-    <span id="sync" class="sync-badge off" title="Google Drive sync">Drive</span>
-    <button id="pro" class="sync-badge off" hidden title="Unlock Pro">🔒 Free</button>
-    <button id="toggle" class="icon" title="Hide panel">▾</button>
+    <span id="sync" class="sync-badge off" title="Google Drive sync" data-i18n-title="drive_sync">Drive</span>
+    <button id="pro" class="sync-badge off" hidden title="Unlock Pro" data-i18n-title="unlock_pro">🔒 Free</button>
+    <button id="toggle" class="icon" title="Hide panel" data-i18n-title="hide_panel">▾</button>
   </div>
 
   <div class="panel-body">
-    <label class="field">Tag
+    <label class="field"><span data-i18n="language">Language</span>
+      <select id="tt-language" aria-label="Language"><option value="en">English</option><option value="pt-BR">Português (Brasil)</option></select>
+    </label>
+    <label class="field"><span data-i18n="tag">Tag</span>
       <select id="device"></select>
     </label>
     <div id="latest" class="latest"></div>
-    <button id="park" class="park">🅿️ Park &amp; guard</button>
+    <button id="park" class="park" data-i18n="park">🅿️ Park &amp; guard</button>
     <div class="row">
-      <button id="locate" class="primary">📍 Locate now</button>
-      <button id="ring">🔔 Ring</button>
-      <button id="share">↗ Share</button>
+      <button id="locate" class="primary" data-i18n="locate">📍 Locate now</button>
+      <button id="ring" data-i18n="ring">🔔 Ring</button>
+      <button id="share" data-i18n="share">↗ Share</button>
     </div>
 
-    <div class="field">History
+    <div class="field"><span data-i18n="history">History</span>
       <div class="chips" id="ranges">
-        <button data-h="today">Today</button>
+        <button data-h="today" data-i18n="today">Today</button>
         <button data-h="24">24 h</button>
-        <button data-h="48">2 days</button>
-        <button data-h="168" class="on">7 days</button>
-        <button data-h="720">30 days</button>
-        <button data-h="2160">90 days</button>
-        <button data-h="8760">1 year</button>
-        <button data-h="custom">Custom</button>
+        <button data-h="48" data-i18n="two_days">2 days</button>
+        <button data-h="168" data-i18n="seven_days" class="on">7 days</button>
+        <button data-h="720" data-i18n="thirty_days">30 days</button>
+        <button data-h="2160" data-i18n="ninety_days">90 days</button>
+        <button data-h="8760" data-i18n="year">1 year</button>
+        <button data-h="custom" data-i18n="custom">Custom</button>
       </div>
     </div>
     <div id="custom" class="custom" hidden>
-      <label>From<input type="datetime-local" id="from"></label>
-      <label>To<input type="datetime-local" id="to"></label>
-      <button id="applyCustom">Show</button>
+      <label><span data-i18n="from">From</span><input type="datetime-local" id="from"></label>
+      <label><span data-i18n="to">To</span><input type="datetime-local" id="to"></label>
+      <button id="applyCustom" data-i18n="show">Show</button>
     </div>
 
     <div class="stats" id="stats"></div>
 
-    <div class="field">Playback
+    <div class="field"><span data-i18n="playback">Playback</span>
       <div class="playback">
-        <button id="play" class="icon" title="Play">▶</button>
+        <button id="play" class="icon" title="Play" data-i18n-title="play">▶</button>
         <input type="range" id="scrub" min="0" max="0" value="0">
       </div>
       <div class="muted small" id="scrubLabel">&nbsp;</div>
     </div>
 
-    <label class="check"><input type="checkbox" id="showPoints" checked> Show individual points</label>
-    <label class="check"><input type="checkbox" id="autoRefresh" checked> Auto-refresh every minute</label>
+    <label class="check"><input type="checkbox" id="showPoints" checked> <span data-i18n="show_points">Show individual points</span></label>
+    <label class="check"><input type="checkbox" id="autoRefresh" checked> <span data-i18n="auto_refresh">Auto-refresh every minute</span></label>
 
     <div class="row">
-      <button id="pollNow">Check now</button>
+      <button id="pollNow" data-i18n="check_now">Check now</button>
       <button id="csv">CSV</button>
       <button id="gpx">GPX</button>
     </div>
     <div class="muted small" id="pollStatus"></div>
     <div class="row foot">
-      <button id="rename" class="link">Rename tag</button>
-      <button id="server" class="link" hidden>Change server</button>
-      <button id="logout" class="link">Sign out</button>
+      <button id="rename" class="link" data-i18n="rename">Rename tag</button>
+      <button id="server" class="link" data-i18n="server" hidden>Change server</button>
+      <button id="logout" class="link" data-i18n="logout">Sign out</button>
     </div>
   </div>
 </aside>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="static/i18n.js"></script>
 <script src="static/app.js"></script>
 </body>
 </html>

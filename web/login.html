@@ -11,14 +11,16 @@
 <body class="login-body">
 <form class="login-card" id="f">
   <div class="brand"><span class="dot"></span> Tag Tracker</div>
-  <p class="muted">Sign in to see your tag's travel history.</p>
-  <label>Username<input name="username" autocomplete="username" required autofocus></label>
-  <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
-  <button type="submit" class="primary">Sign in</button>
+  <p class="muted" data-i18n="login_sub">Sign in to see your tag's travel history.</p>
+  <label><span data-i18n="username">Username</span><input name="username" autocomplete="username" required autofocus></label>
+  <label><span data-i18n="password">Password</span><input name="password" type="password" autocomplete="current-password" required></label>
+  <button type="submit" class="primary" data-i18n="login">Sign in</button>
   <p class="error" id="err"></p>
-  <button type="button" class="link" id="server" hidden onclick="TagTrackerApp.changeServer()">Change server</button>
-  <p class="muted small" style="text-align:center;margin:4px 0 0">Not affiliated with Google. Independent, open-source. For tracking your own property.</p>
+  <button type="button" class="link" id="server" data-i18n="server" hidden onclick="TagTrackerApp.changeServer()">Change server</button>
+  <p class="muted small" data-i18n="disclaimer" style="text-align:center;margin:4px 0 0">Not affiliated with Google. Independent, open-source. For tracking your own property.</p>
+  <label><span data-i18n="language">Language</span><select id="tt-language" aria-label="Language"><option value="en">English</option><option value="pt-BR">Português (Brasil)</option></select></label>
 </form>
+<script src="static/i18n.js"></script>
 <script>
 if (window.TagTrackerApp) document.getElementById('server').hidden = false;
 document.getElementById('f').addEventListener('submit', async (e) => {
@@ -30,7 +32,7 @@ document.getElementById('f').addEventListener('submit', async (e) => {
     body: JSON.stringify({username: fd.get('username'), password: fd.get('password')})
   });
   if (r.ok) location.href = '/';
-  else err.textContent = (await r.json().catch(() => ({}))).detail || 'Sign in failed';
+  else err.textContent = (await r.json().catch(() => ({}))).detail || window.TT_I18N.t('login_failed');
 });
 </script>
 </body>
